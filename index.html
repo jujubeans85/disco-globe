@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Disco Globe — Interactive Atlas</title>
+<style>
+  :root { --bg: #07070a; --neon: #ff2d95; --cyan: #00e5ff; --text: #f0f0f5; --muted: #888; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; overflow: hidden; height: 100vh; }
+  #canvas-container { position: absolute; inset: 0; }
+  .ui { position: absolute; z-index: 10; pointer-events: none; }
+  .ui > * { pointer-events: auto; }
+  header { top: 16px; left: 20px; right: 20px; display: flex; justify-content: space-between; align-items: center; }
+  .logo { font-weight: 700; font-size: 14px; }
+  .logo span { color: var(--neon); }
+  .modes { display: flex; gap: 6px; background: rgba(0,0,0,0.6); padding: 4px; border-radius: 999px; }
+  .modes button { background: transparent; border: none; color: var(--muted); padding: 6px 14px; border-radius: 999px; font-size: 12px; cursor: pointer; }
+  .modes button.active { background: var(--neon); color: #000; font-weight: 600; }
+  .panel { position: absolute; right: 20px; top: 70px; width: 340px; background: rgba(17,17,24,0.94); border: 1px solid #2a2a35; border-radius: 12px; padding: 18px; display: none; }
+  .panel.open { display: block; }
+  .panel h2 { font-size: 20px; }
+  .panel .id { color: var(--neon); font-size: 12px; font-weight: 700; }
+  .links { display: flex; gap: 6px; margin-top: 14px; }
+  .links a { flex: 1; text-align: center; padding: 9px; border-radius: 6px; text-decoration: none; font-size: 11px; font-weight: 700; }
+  .yt { background: #ff0000; color: #fff; } .sc { background: #ff5500; color: #fff; } .sp { background: #1db954; color: #000; }
+  .hint { position: absolute; bottom: 20px; left: 20px; font-size: 12px; color: var(--muted); }
+  .count { position: absolute; bottom: 20px; right: 20px; font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div id="canvas-container"></div>
+<header class="ui"><div class="logo">DISCO <span>GLOBE</span></div><div class="modes" id="modes"><button data-mode="genres" class="active">Genre Atlas</button><button data-mode="history">Music History</button><button data-mode="playlists">My Playlists</button><button data-mode="integrations">Integrations</button></div></header>
+<div class="panel" id="panel"><button class="close" id="close">✕</button><div class="id" id="p-id"></div><h2 id="p-title"></h2><div class="meta" id="p-meta"></div><p id="p-desc"></p><div class="links"><a class="yt" id="link-yt" target="_blank">YouTube</a><a class="sc" id="link-sc" target="_blank">SoundCloud</a><a class="sp" id="link-sp" target="_blank">Spotify</a></div></div>
+<div class="hint ui">Drag to rotate · Scroll / pinch to zoom · Click markers</div>
+<div class="count ui" id="count"></div>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+const DATA = { genres: [ { id: "GEN-001", label: "Afrobeats", lat: 6.5, lon: 3.4, era: "2010s–", desc: "Nigerian-rooted global sound.", yt: "https://youtube.com/results?search_query=afrobeats", sc: "https://soundcloud.com/search?q=afrobeats", sp: "https://open.spotify.com/search/afrobeats" }, { id: "GEN-007", label: "Techno", lat: 52.5, lon: 13.4, era: "1980s–", desc: "Berlin electronic.", yt: "https://youtube.com/results?search_query=techno", sc: "https://soundcloud.com/search?q=techno", sp: "https://open.spotify.com/search/techno" }, { id: "GEN-042", label: "Brazilian Bass", lat: -23.55, lon: -46.63, era: "2010s–", desc: "São Paulo groove.", yt: "https://youtube.com/results?search_query=brazilian+bass", sc: "https://soundcloud.com/search?q=brazilian+bass", sp: "https://open.spotify.com/search/brazilian+bass" } ], history: [ { id: "HIS-001", label: "Blues", lat: 35.1, lon: -90.0, era: "1920s", desc: "Delta roots.", yt: "#", sc: "#", sp: "#" } ], playlists: [ { id: "PL-01", label: "Late Night Drive", lat: 34.05, lon: -118.24, era: "User", desc: "Private crate.", yt: "#", sc: "#", sp: "#" } ], integrations: [ { id: "INT-01", label: "Spotify Sync", lat: 59.3, lon: 18.0, era: "Live", desc: "Coming soon.", yt: "#", sc: "#", sp: "#" } ] };
+let currentMode = "genres"; let markers = [];
+const container = document.getElementById("canvas-container");
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x07070a);
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100); camera.position.set(0, 0, 3.4);
+const renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setSize(window.innerWidth, window.innerHeight); renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); container.appendChild(renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping = true; controls.dampingFactor = 0.08;
+const globe = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 64), new THREE.MeshStandardMaterial({ color: 0x0d0d12, metalness: 0.9, roughness: 0.2 })); scene.add(globe);
+scene.add(new THREE.AmbientLight(0x404060, 0.5)); const rim = new THREE.PointLight(0xff2d95, 2, 8); rim.position.set(-2, 1, 2); scene.add(rim);
+function latLonToVec3(lat, lon, r = 1.025) { const phi = (90 - lat) * Math.PI / 180; const theta = (lon + 180) * Math.PI / 180; return new THREE.Vector3(-r * Math.sin(phi) * Math.cos(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(theta)); }
+function buildMarkers(mode) { markers.forEach(m => scene.remove(m)); markers = []; (DATA[mode] || []).forEach(p => { const pos = latLonToVec3(p.lat, p.lon); const m = new THREE.Mesh(new THREE.SphereGeometry(0.016, 16, 16), new THREE.MeshBasicMaterial({ color: 0xff2d95 })); m.position.copy(pos); m.userData = p; scene.add(m); markers.push(m); }); document.getElementById("count").textContent = (DATA[mode] || []).length + " markers"; }
+buildMarkers(currentMode);
+const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2(); const panel = document.getElementById("panel");
+renderer.domElement.addEventListener("pointerdown", e => { const rect = renderer.domElement.getBoundingClientRect(); mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1; mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1; raycaster.setFromCamera(mouse, camera); const hits = raycaster.intersectObjects(markers); if (hits.length) { const d = hits[0].object.userData; document.getElementById("p-id").textContent = d.id; document.getElementById("p-title").textContent = d.label; document.getElementById("p-meta").textContent = d.era; document.getElementById("p-desc").textContent = d.desc; document.getElementById("link-yt").href = d.yt; document.getElementById("link-sc").href = d.sc; document.getElementById("link-sp").href = d.sp; panel.classList.add("open"); } });
+document.getElementById("close").onclick = () => panel.classList.remove("open");
+document.getElementById("modes").onclick = e => { const btn = e.target.closest("button"); if (!btn) return; document.querySelectorAll(".modes button").forEach(b => b.classList.remove("active")); btn.classList.add("active"); currentMode = btn.dataset.mode; buildMarkers(currentMode); panel.classList.remove("open"); };
+function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); } animate();
+window.addEventListener("resize", () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+</script>
+</body>
+</html>
