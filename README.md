@@ -1,5 +1,7 @@
 # Disco Juice
 
-Interactive music atlas (3D globe + map view).
+Interactive 3D music atlas globe + map view.
+
+Drag to rotate, pinch to zoom, tap markers for links.
 
 Live: https://jujubeans85.github.io/disco-globe/
