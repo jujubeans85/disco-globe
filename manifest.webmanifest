@@ -1,0 +1,28 @@
+{
+  "name": "Disco Juice — Decade Globes",
+  "short_name": "Disco Juice",
+  "description": "Interactive disco-ball music atlas with one globe per decade from the 1800s to the 2020s.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07070a",
+  "theme_color": "#07070a",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
