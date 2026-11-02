@@ -115,6 +115,13 @@
   .live-item:hover { color: var(--neon); }
   .live-item .rank { color: var(--neon); font-weight: 600; margin-right: 4px; }
 
+
+  @media (max-width: 520px) {
+    .live-feed { max-height: 22vh; font-size: 11px; }
+    .tweaks { max-height: 28vh; }
+  }
+  .live-feed.collapsed { max-height: 36px; overflow: hidden; }
+
 </style>
 </head>
 <body>
@@ -127,7 +134,7 @@
   </header>
   
   <div class="live-feed" id="live-feed">
-    <h3>Live Charts</h3>
+    <h3>Live Charts <button id="feed-toggle" style="float:right;background:none;border:none;color:#888;cursor:pointer">−</button></h3>
     <div id="live-list">Loading…</div>
   </div>
 
@@ -280,9 +287,21 @@ function buildMarkers(decadeId) {
     const lat = (Math.sin(i * 1.7) * 60) + (Math.random() * 20 - 10);
     const lon = (i * 37) % 360 - 180;
     const pos = latLonToVec3(lat, lon, 1.02);
-    const geo = new THREE.SphereGeometry(size, 8, 8);
-    const mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const geo = new THREE.SphereGeometry(size, 12, 12);
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: 0xff6bb5,
+      emissiveIntensity: 0.85,
+      metalness: 0.2,
+      roughness: 0.3
+    });
     const marker = new THREE.Mesh(geo, mat);
+    // soft glow halo
+    const halo = new THREE.Mesh(
+      new THREE.SphereGeometry(size * 1.8, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0xff2d95, transparent: true, opacity: 0.18, depthWrite: false })
+    );
+    marker.add(halo);
     marker.position.copy(pos);
     marker.userData = { ...t, decade: decadeId, lat, lon };
     scene.add(marker);
@@ -377,7 +396,12 @@ function openPlayer(data) {
   document.getElementById("player-title").textContent = data.title;
   document.getElementById("player-meta").textContent = `${data.artist} · ${data.year} · ${data.decade}`;
   const iframe = document.getElementById("player-iframe");
-  iframe.src = `https://www.youtube.com/embed/${data.youtubeId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&fs=1`;
+  // Ad-blocker proxy path (swap PROXY_BASE for your own yt-proxy / invidious / piped instance)
+const PROXY_BASE = ""; // e.g. "https://pipedapi.kavin.rocks" or self-hosted
+const embedUrl = PROXY_BASE
+  ? `${PROXY_BASE}/watch?v=${data.youtubeId}&autoplay=1`
+  : `https://www.youtube.com/embed/${data.youtubeId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&fs=1&disablekb=1`;
+iframe.src = embedUrl;
   const links = document.getElementById("player-links");
   links.innerHTML = `
     <a href="https://www.youtube.com/watch?v=${data.youtubeId}" target="_blank">YouTube</a>
@@ -417,6 +441,13 @@ async function loadLiveCharts() {
 }
 loadLiveCharts();
 setInterval(loadLiveCharts, 5 * 60 * 1000);
+
+document.getElementById("feed-toggle")?.addEventListener("click", (e) => {
+  const feed = document.getElementById("live-feed");
+  feed.classList.toggle("collapsed");
+  e.target.textContent = feed.classList.contains("collapsed") ? "+" : "−";
+});
+
 
 
 function animate() {
