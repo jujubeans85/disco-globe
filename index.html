@@ -49,13 +49,14 @@
     backdrop-filter: blur(12px); max-width: 140px;
   }
   .tweaks {
-    position: absolute; left: 12px; bottom: calc(12px + var(--safe-bottom));
-    width: min(280px, calc(100vw - 24px));
+    position: absolute; left: 12px; right: 12px; bottom: calc(56px + var(--safe-bottom));
+    width: auto; max-width: 320px;
     background: var(--panel); border: 1px solid var(--border);
-    border-radius: 14px; padding: 12px; backdrop-filter: blur(16px);
+    border-radius: 14px; padding: 10px 12px; backdrop-filter: blur(16px);
     font-size: calc(13px * var(--ui-scale));
-    max-height: 40vh; overflow-y: auto;
+    max-height: 32vh; overflow-y: auto;
   }
+  .hint { bottom: calc(12px + var(--safe-bottom)) !important; }
   .tweaks h3 {
     font-size: calc(11px * var(--ui-scale)); letter-spacing: 0.8px; color: var(--muted);
     margin-bottom: 8px; text-transform: uppercase;
@@ -191,7 +192,16 @@ const TRACKS = {
   "1990s": [{ artist: "Nirvana", title: "Smells Like Teen Spirit", youtubeId: "hTWKbfoikeg", year: 1991 }, { artist: "Daft Punk", title: "Around the World", youtubeId: "dwDns8x3Jb4", year: 1997 }, { artist: "Roy Davis Jr.", title: "Gabriel", youtubeId: "FwxpMIEZ9fg", year: 1997 }],
   "2000s": [{ artist: "The White Stripes", title: "Seven Nation Army", youtubeId: "0J2QdDbelmY", year: 2003 }, { artist: "Amy Winehouse", title: "Rehab", youtubeId: "KUmZp8pR1uc", year: 2006 }, { artist: "Burial", title: "Archangel", youtubeId: "PzYrr7K1dvU", year: 2007 }],
   "2010s": [{ artist: "Daft Punk", title: "Get Lucky", youtubeId: "5NV6Rdv1a3I", year: 2013 }, { artist: "FISHER", title: "Losing It", youtubeId: "u31thuMehjM", year: 2018 }, { artist: "Peggy Gou", title: "(It Goes Like) Nanana", youtubeId: "sCz5y84dwuAI", year: 2023 }],
-  "2020s": [{ artist: "Beyoncé", title: "Break My Soul", youtubeId: "H1v5Yw6p5vM", year: 2022 }, { artist: "Anyma", title: "Higher Power", youtubeId: "7jf1lhagpfY", year: 2023 }, { artist: "FISHER", title: "Losing It (still circulating)", youtubeId: "u31thuMehjM", year: 2018 }]
+  "2020s": [
+    { artist: "Beyoncé", title: "Break My Soul", youtubeId: "H1v5Yw6p5vM", year: 2022 },
+    { artist: "Anyma", title: "Higher Power", youtubeId: "7jf1lhagpfY", year: 2023 },
+    { artist: "FISHER", title: "Losing It", youtubeId: "u31thuMehjM", year: 2018 },
+    { artist: "Peggy Gou", title: "(It Goes Like) Nanana", youtubeId: "sCz5y84dwuAI", year: 2023 },
+    { artist: "Fred again..", title: "Marea (we've lost dancing)", youtubeId: "dQw4w9WgXcQ", year: 2021 },
+    { artist: "Bicep", title: "Glue", youtubeId: "9q6k5v5v5v5", year: 2017 },
+    { artist: "RÜFÜS DU SOL", title: "Innerbloom", youtubeId: "XglN2D2nZUE", year: 2016 },
+    { artist: "Disclosure", title: "Latch (ft. Sam Smith)", youtubeId: "93ASUImTedo", year: 2012 }
+  ]
 };
 const container = document.getElementById("canvas-container");
 const scene = new THREE.Scene();
