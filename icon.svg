@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="globe" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#ff6bb5"/>
+      <stop offset="45%" stop-color="#ff2d95"/>
+      <stop offset="100%" stop-color="#4a0a2a"/>
+    </radialGradient>
+    <linearGradient id="shine" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="240" fill="#07070a"/>
+  <circle cx="256" cy="256" r="210" fill="url(#globe)"/>
+  <g fill="#ffffff" opacity="0.18">
+    <polygon points="256,60 300,140 256,180 212,140"/>
+    <polygon points="140,160 210,200 180,270 110,230"/>
+    <polygon points="370,160 400,230 330,270 300,200"/>
+    <polygon points="200,300 256,340 220,410 160,370"/>
+    <polygon points="310,300 350,370 290,410 256,340"/>
+  </g>
+  <circle cx="256" cy="256" r="210" fill="url(#shine)"/>
+  <path d="M180 180 Q220 150 280 170 T340 200 Q360 240 330 280 T250 300 Q200 290 170 250 Z" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.25"/>
+  <path d="M140 300 Q180 280 220 310 T200 360 Q160 350 140 320 Z" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.2"/>
+</svg>
