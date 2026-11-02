@@ -387,14 +387,19 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
   mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
   mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
-  const hits = raycaster.intersectObjects(markers);
-  if (hits.length) openPlayer(hits[0].object.userData);
+  const hits = raycaster.intersectObjects(markers, true);
+  if (hits.length) {
+    let obj = hits[0].object;
+    while (obj && !obj.userData?.youtubeId) obj = obj.parent;
+    if (obj?.userData?.youtubeId) openPlayer(obj.userData);
+  }
 });
 
 function openPlayer(data) {
+  if (!data || !data.youtubeId) return;
   const modal = document.getElementById("player-modal");
-  document.getElementById("player-title").textContent = data.title;
-  document.getElementById("player-meta").textContent = `${data.artist} · ${data.year} · ${data.decade}`;
+  document.getElementById("player-title").textContent = data.title || "Track";
+  document.getElementById("player-meta").textContent = `${data.artist || ""} · ${data.year || ""} · ${data.decade || ""}`;
   const iframe = document.getElementById("player-iframe");
   // Ad-blocker proxy path (swap PROXY_BASE for your own yt-proxy / invidious / piped instance)
 const PROXY_BASE = ""; // e.g. "https://pipedapi.kavin.rocks" or self-hosted
