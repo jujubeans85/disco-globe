@@ -102,6 +102,19 @@
     position: absolute; top: 8px; right: 8px; background: none; border: none;
     color: #888; font-size: 20px; cursor: pointer; width: 32px; height: 32px;
   }
+
+  .live-feed {
+    position: absolute; top: calc(52px + var(--safe-top)); right: 12px;
+    width: min(260px, calc(100vw - 24px)); max-height: 36vh; overflow-y: auto;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 10px 12px; backdrop-filter: blur(16px);
+    font-size: calc(12px * var(--ui-scale)); z-index: 25;
+  }
+  .live-feed h3 { font-size: 11px; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; }
+  .live-item { padding: 4px 0; border-bottom: 1px solid #222; cursor: pointer; }
+  .live-item:hover { color: var(--neon); }
+  .live-item .rank { color: var(--neon); font-weight: 600; margin-right: 4px; }
+
 </style>
 </head>
 <body>
@@ -112,6 +125,12 @@
     <div class="logo">DISCO <span>JUICE</span></div>
     <select id="decade-select" class="decade-select"></select>
   </header>
+  
+  <div class="live-feed" id="live-feed">
+    <h3>Live Charts</h3>
+    <div id="live-list">Loading…</div>
+  </div>
+
   <div class="count" id="count">0 markers</div>
   <div class="tweaks">
     <h3>Controls</h3>
@@ -375,6 +394,30 @@ document.getElementById("close-player").onclick = () => {
 
 // Init
 buildGlobe("2020s");
+
+async function loadLiveCharts() {
+  const list = document.getElementById("live-list");
+  try {
+    const res = await fetch("https://itunes.apple.com/us/rss/topsongs/limit=20/json");
+    const data = await res.json();
+    const entries = data.feed.entry || [];
+    list.innerHTML = entries.slice(0, 12).map((e, i) => {
+      const title = e["im:name"]?.label || "";
+      const artist = e["im:artist"]?.label || "";
+      const url = e.link?.[0]?.attributes?.href || "#";
+      return `<div class="live-item" data-url="${url}"><span class="rank">${i+1}</span> ${title} <span style="color:#888">· ${artist}</span></div>`;
+    }).join("");
+    list.querySelectorAll(".live-item").forEach(el => {
+      el.onclick = () => window.open(el.dataset.url, "_blank");
+    });
+  } catch (err) {
+    list.textContent = "Charts unavailable";
+    console.warn(err);
+  }
+}
+loadLiveCharts();
+setInterval(loadLiveCharts, 5 * 60 * 1000);
+
 
 function animate() {
   requestAnimationFrame(animate);
