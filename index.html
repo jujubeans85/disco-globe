@@ -1,1 +1,376 @@
-See /workspace/artifacts/disco-globe/index.html for the full interactive version that is now live
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Disco Juice">
+<meta name="theme-color" content="#07070a">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Disco Juice — Decade Globes</title>
+<style>
+  :root {
+    --bg: #07070a;
+    --panel: #111118ee;
+    --neon: #ff2d95;
+    --text: #f0f0f5;
+    --muted: #888;
+    --border: #2a2a35;
+    --ui-scale: 1;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow: hidden;
+    height: 100vh; height: 100dvh;
+    font-size: calc(14px * var(--ui-scale));
+    touch-action: none;
+  }
+  #canvas-container { position: absolute; inset: 0; }
+  .ui { position: absolute; z-index: 20; pointer-events: none; }
+  .ui > * { pointer-events: auto; }
+  header {
+    top: calc(8px + var(--safe-top)); left: 12px; right: 12px;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .logo { font-weight: 700; font-size: calc(15px * var(--ui-scale)); white-space: nowrap; }
+  .logo span { color: var(--neon); }
+  .decade-select {
+    background: rgba(0,0,0,0.6); border: 1px solid #333; color: #eee;
+    padding: 6px 10px; border-radius: 999px; font-size: calc(12px * var(--ui-scale));
+    backdrop-filter: blur(12px); max-width: 140px;
+  }
+  .tweaks {
+    position: absolute; left: 12px; bottom: calc(12px + var(--safe-bottom));
+    width: min(280px, calc(100vw - 24px));
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 12px; backdrop-filter: blur(16px);
+    font-size: calc(13px * var(--ui-scale));
+    max-height: 40vh; overflow-y: auto;
+  }
+  .tweaks h3 {
+    font-size: calc(11px * var(--ui-scale)); letter-spacing: 0.8px; color: var(--muted);
+    margin-bottom: 8px; text-transform: uppercase;
+  }
+  .tweak-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px; gap: 8px;
+  }
+  .tweak-row label { color: #ccc; flex: 1; }
+  .tweak-row button.toggle {
+    background: #222; border: 1px solid #333; color: #aaa; border-radius: 8px;
+    padding: 6px 12px; font-size: calc(12px * var(--ui-scale)); cursor: pointer; min-width: 48px;
+  }
+  .tweak-row button.toggle.on { background: var(--neon); color: #000; border-color: var(--neon); }
+  .count { position: absolute; top: calc(52px + var(--safe-top)); left: 12px; font-size: calc(11px * var(--ui-scale)); color: var(--muted); }
+  .hint {
+    position: absolute; bottom: calc(8px + var(--safe-bottom)); left: 50%; transform: translateX(-50%);
+    font-size: calc(10px * var(--ui-scale)); color: var(--muted);
+    background: rgba(0,0,0,0.5); padding: 4px 10px; border-radius: 8px;
+    max-width: 85vw; text-align: center; pointer-events: none;
+  }
+  #player-modal {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  #player-modal.open { display: flex; }
+  .player-card {
+    background: #111118; border: 1px solid #2a2a35; border-radius: 16px;
+    width: min(420px, 100%); padding: 16px; position: relative;
+  }
+  .player-card h2 { font-size: 16px; margin-bottom: 4px; }
+  .player-card .meta { color: #888; font-size: 12px; margin-bottom: 12px; }
+  .player-card iframe { width: 100%; aspect-ratio: 16/9; border: 0; border-radius: 8px; background: #000; }
+  .links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .links a {
+    background: #222; color: #eee; text-decoration: none; padding: 6px 10px;
+    border-radius: 8px; font-size: 12px; border: 1px solid #333;
+  }
+  .links a:hover { background: var(--neon); color: #000; }
+  .close-btn {
+    position: absolute; top: 8px; right: 8px; background: none; border: none;
+    color: #888; font-size: 20px; cursor: pointer; width: 32px; height: 32px;
+  }
+</style>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div class="ui">
+  <header>
+    <div class="logo">DISCO <span>JUICE</span></div>
+    <select id="decade-select" class="decade-select"></select>
+  </header>
+  <div class="count" id="count">0 markers</div>
+  <div class="tweaks">
+    <h3>Controls</h3>
+    <div class="tweak-row">
+      <label>Auto-rotate</label>
+      <button id="auto-toggle" class="toggle on">ON</button>
+    </div>
+    <div class="tweak-row">
+      <label>Geo outline</label>
+      <button id="geo-toggle" class="toggle on">ON</button>
+    </div>
+  </div>
+  <div class="hint">Drag to rotate · Pinch to zoom · Tap markers to play</div>
+</div>
+<div id="player-modal">
+  <div class="player-card">
+    <button class="close-btn" id="close-player">×</button>
+    <h2 id="player-title">Track</h2>
+    <div class="meta" id="player-meta"></div>
+    <iframe id="player-iframe" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    <div class="links" id="player-links"></div>
+  </div>
+</div>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+const DECADES = [
+  { id: "1800s", label: "1800s", color: 0x4a3728, emissive: 0x1a1008, metal: 0.3, rough: 0.7, light: 0xffcc99 },
+  { id: "1810s", label: "1810s", color: 0x3a2a20, emissive: 0x120c08, metal: 0.4, rough: 0.65, light: 0xffbb88 },
+  { id: "1820s", label: "1820s", color: 0x2e3a28, emissive: 0x0c1408, metal: 0.5, rough: 0.6, light: 0xccffaa },
+  { id: "1830s", label: "1830s", color: 0x2a2a3a, emissive: 0x080c14, metal: 0.6, rough: 0.55, light: 0xaaccff },
+  { id: "1840s", label: "1840s", color: 0x3a2a3a, emissive: 0x140814, metal: 0.55, rough: 0.5, light: 0xffaacc },
+  { id: "1850s", label: "1850s", color: 0x2a3a3a, emissive: 0x081414, metal: 0.7, rough: 0.45, light: 0xaaeeff },
+  { id: "1860s", label: "1860s", color: 0x3a2a1a, emissive: 0x140c04, metal: 0.45, rough: 0.6, light: 0xffdd88 },
+  { id: "1870s", label: "1870s", color: 0x1a2a3a, emissive: 0x040c14, metal: 0.75, rough: 0.4, light: 0x88ccff },
+  { id: "1880s", label: "1880s", color: 0x2a1a2a, emissive: 0x100410, metal: 0.65, rough: 0.42, light: 0xee88ff },
+  { id: "1890s", label: "1890s", color: 0x1a1a2a, emissive: 0x040414, metal: 0.8, rough: 0.35, light: 0xaaaaee },
+  { id: "1900s", label: "1900s", color: 0x2a2a1a, emissive: 0x101004, metal: 0.5, rough: 0.5, light: 0xeeff88 },
+  { id: "1910s", label: "1910s", color: 0x3a1a1a, emissive: 0x140404, metal: 0.6, rough: 0.48, light: 0xff8888 },
+  { id: "1920s", label: "1920s", color: 0x1a3a2a, emissive: 0x04140c, metal: 0.85, rough: 0.3, light: 0x88ffaa },
+  { id: "1930s", label: "1930s", color: 0x2a1a3a, emissive: 0x0c0414, metal: 0.7, rough: 0.38, light: 0xcc88ff },
+  { id: "1940s", label: "1940s", color: 0x1a2a2a, emissive: 0x040c0c, metal: 0.55, rough: 0.5, light: 0x88eeee },
+  { id: "1950s", label: "1950s", color: 0x3a3a1a, emissive: 0x141404, metal: 0.9, rough: 0.25, light: 0xffff88 },
+  { id: "1960s", label: "1960s", color: 0xff2d55, emissive: 0x4a0a1a, metal: 0.85, rough: 0.2, light: 0xff6b9d },
+  { id: "1970s", label: "1970s", color: 0xff6b35, emissive: 0x4a1a0a, metal: 0.8, rough: 0.25, light: 0xffaa66 },
+  { id: "1980s", label: "1980s", color: 0x00e5ff, emissive: 0x0a2a4a, metal: 0.95, rough: 0.15, light: 0x66ffff },
+  { id: "1990s", label: "1990s", color: 0x39ff14, emissive: 0x0a4a0a, metal: 0.9, rough: 0.18, light: 0x88ff66 },
+  { id: "2000s", label: "2000s", color: 0xffd166, emissive: 0x4a3a0a, metal: 0.85, rough: 0.22, light: 0xffee88 },
+  { id: "2010s", label: "2010s", color: 0xc77dff, emissive: 0x3a0a4a, metal: 0.92, rough: 0.12, light: 0xeeaaff },
+  { id: "2020s", label: "2020s", color: 0xff2d95, emissive: 0x4a0a2a, metal: 1.0, rough: 0.1, light: 0xff6bb5 }
+];
+const TRACKS = {
+  "1800s": [{ artist: "Ludwig van Beethoven", title: "Moonlight Sonata (Full)", youtubeId: "C29cN741py4", year: 1801 }, { artist: "Ludwig van Beethoven", title: "Symphony No. 5 (1st Movement)", youtubeId: "jv2WJMVPQi8", year: 1808 }],
+  "1810s": [{ artist: "Ludwig van Beethoven", title: "Für Elise", youtubeId: "Lkx8YToj_Wo", year: 1810 }, { artist: "Franz Schubert", title: "Erlkönig", youtubeId: "JS91p-vmSf0", year: 1815 }],
+  "1820s": [{ artist: "Franz Schubert", title: "Ave Maria", youtubeId: "2bosouX_d8Y", year: 1825 }, { artist: "Franz Schubert", title: "Unfinished Symphony", youtubeId: "V1Lbxu3g3gY", year: 1822 }],
+  "1830s": [{ artist: "Frédéric Chopin", title: "Nocturne Op. 9 No. 2", youtubeId: "9E6b3swbnWg", year: 1832 }, { artist: "Hector Berlioz", title: "Symphonie Fantastique (excerpt)", youtubeId: "0DWjI1uL5D4", year: 1830 }],
+  "1840s": [{ artist: "Frédéric Chopin", title: "Polonaise in A Major 'Military'", youtubeId: "wEVju0xQ5vI", year: 1840 }, { artist: "Felix Mendelssohn", title: "Wedding March", youtubeId: "eVkgK2vofEc", year: 1842 }],
+  "1850s": [{ artist: "Richard Wagner", title: "Lohengrin Prelude", youtubeId: "Y5E4e1b0p0I", year: 1850 }, { artist: "Giuseppe Verdi", title: "La Traviata Prelude", youtubeId: "nXMPx4DDVWM", year: 1853 }],
+  "1860s": [{ artist: "Richard Wagner", title: "Ride of the Valkyries", youtubeId: "GGU1P6lBW6Q", year: 1856 }, { artist: "Johannes Brahms", title: "Hungarian Dance No. 5", youtubeId: "Nzo3atXtcgg", year: 1869 }],
+  "1870s": [{ artist: "Johannes Brahms", title: "Symphony No. 1 (4th Movement)", youtubeId: "nXMPx4DDVWM", year: 1876 }, { artist: "Pyotr Tchaikovsky", title: "Swan Lake (excerpt)", youtubeId: "9cNQFB0TDfY", year: 1876 }],
+  "1880s": [{ artist: "Pyotr Tchaikovsky", title: "1812 Overture", youtubeId: "VbxgYlcNxE8", year: 1880 }, { artist: "Antonín Dvořák", title: "Symphony No. 9 'From the New World'", youtubeId: "oO2kH5qY7n0", year: 1893 }],
+  "1890s": [{ artist: "Gustav Mahler", title: "Symphony No. 1 (excerpt)", youtubeId: "nXMPx4DDVWM", year: 1888 }, { artist: "Claude Debussy", title: "Clair de Lune", youtubeId: "ea2WoUtbzuw", year: 1890 }],
+  "1900s": [{ artist: "Scott Joplin", title: "The Entertainer", youtubeId: "fPmruHc4S9Q", year: 1902 }, { artist: "Claude Debussy", title: "La Mer", youtubeId: "nXMPx4DDVWM", year: 1905 }],
+  "1910s": [{ artist: "Igor Stravinsky", title: "The Rite of Spring", youtubeId: "EkwqPJZe8ms", year: 1913 }, { artist: "Original Dixieland Jazz Band", title: "Livery Stable Blues", youtubeId: "5WojKqZ3w4c", year: 1917 }],
+  "1920s": [{ artist: "Louis Armstrong", title: "West End Blues", youtubeId: "4WPCBieSESI", year: 1928 }, { artist: "George Gershwin", title: "Rhapsody in Blue", youtubeId: "eFHdRkeEnpM", year: 1924 }],
+  "1930s": [{ artist: "Duke Ellington", title: "It Don't Mean a Thing", youtubeId: "qDQpZT3GhDg", year: 1932 }, { artist: "Billie Holiday", title: "Strange Fruit", youtubeId: "Web007rzSOI", year: 1939 }],
+  "1940s": [{ artist: "Glenn Miller", title: "In the Mood", youtubeId: "6v0_eI1Y1w8", year: 1939 }, { artist: "Charlie Parker", title: "Ko-Ko", youtubeId: "okrNwE6GI70", year: 1945 }],
+  "1950s": [{ artist: "Elvis Presley", title: "Hound Dog", youtubeId: "lzQ8GDBA8Is", year: 1956 }, { artist: "Chuck Berry", title: "Johnny B. Goode", youtubeId: "ZFo8-JqzSCM", year: 1958 }],
+  "1960s": [{ artist: "The Beatles", title: "Hey Jude", youtubeId: "A_MjCqQoLLA", year: 1968 }, { artist: "Aretha Franklin", title: "Respect", youtubeId: "6FOUqQt3Kg0", year: 1967 }],
+  "1970s": [{ artist: "Bee Gees", title: "Stayin' Alive", youtubeId: "I_izvAbhExY", year: 1977 }, { artist: "Donna Summer", title: "I Feel Love", youtubeId: "yEbaeLv-aOo", year: 1977 }, { artist: "Chic", title: "Le Freak", youtubeId: "aXgSHL7efKg", year: 1978 }],
+  "1980s": [{ artist: "Michael Jackson", title: "Billie Jean", youtubeId: "Zi_XLOBDo_Y", year: 1982 }, { artist: "Prince", title: "Purple Rain", youtubeId: "TvnYmWpD_T8", year: 1984 }, { artist: "Madonna", title: "Like a Prayer", youtubeId: "79fzeNUqQbQ", year: 1989 }],
+  "1990s": [{ artist: "Nirvana", title: "Smells Like Teen Spirit", youtubeId: "hTWKbfoikeg", year: 1991 }, { artist: "Daft Punk", title: "Around the World", youtubeId: "dwDns8x3Jb4", year: 1997 }, { artist: "Roy Davis Jr.", title: "Gabriel", youtubeId: "FwxpMIEZ9fg", year: 1997 }],
+  "2000s": [{ artist: "The White Stripes", title: "Seven Nation Army", youtubeId: "0J2QdDbelmY", year: 2003 }, { artist: "Amy Winehouse", title: "Rehab", youtubeId: "KUmZp8pR1uc", year: 2006 }, { artist: "Burial", title: "Archangel", youtubeId: "PzYrr7K1dvU", year: 2007 }],
+  "2010s": [{ artist: "Daft Punk", title: "Get Lucky", youtubeId: "5NV6Rdv1a3I", year: 2013 }, { artist: "FISHER", title: "Losing It", youtubeId: "u31thuMehjM", year: 2018 }, { artist: "Peggy Gou", title: "(It Goes Like) Nanana", youtubeId: "sCz5y84dwuAI", year: 2023 }],
+  "2020s": [{ artist: "Beyoncé", title: "Break My Soul", youtubeId: "H1v5Yw6p5vM", year: 2022 }, { artist: "Anyma", title: "Higher Power", youtubeId: "7jf1lhagpfY", year: 2023 }, { artist: "FISHER", title: "Losing It (still circulating)", youtubeId: "u31thuMehjM", year: 2018 }]
+};
+const container = document.getElementById("canvas-container");
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x07070a);
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 0, 3.4);
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+container.appendChild(renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 1.6;
+controls.maxDistance = 6;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.4;
+const ambient = new THREE.AmbientLight(0x202030, 0.4);
+scene.add(ambient);
+const key = new THREE.DirectionalLight(0xffffff, 0.85);
+key.position.set(4, 3, 5);
+scene.add(key);
+const neonLight = new THREE.PointLight(0xff2d95, 1.8, 8);
+neonLight.position.set(-2.2, 1.4, 2.2);
+scene.add(neonLight);
+let globe, geoLines, markers = [];
+let currentDecade = "2020s";
+let showGeo = true;
+function latLonToVec3(lat, lon, radius = 1.01) {
+  const phi = (90 - lat) * Math.PI / 180;
+  const theta = (lon + 180) * Math.PI / 180;
+  return new THREE.Vector3(
+    -radius * Math.sin(phi) * Math.cos(theta),
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.sin(theta)
+  );
+}
+function clearMarkers() {
+  markers.forEach(m => scene.remove(m));
+  markers = [];
+}
+function buildGlobe(decadeId) {
+  if (globe) scene.remove(globe);
+  if (geoLines) scene.remove(geoLines);
+  const style = DECADES.find(d => d.id === decadeId) || DECADES[DECADES.length - 1];
+  const mat = new THREE.MeshPhysicalMaterial({
+    color: style.color,
+    metalness: style.metal,
+    roughness: style.rough,
+    clearcoat: 0.35,
+    emissive: style.emissive,
+    emissiveIntensity: 0.25
+  });
+  globe = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 64), mat);
+  scene.add(globe);
+  neonLight.color.setHex(style.light);
+  key.color.setHex(style.light);
+  buildMarkers(decadeId);
+  if (showGeo) loadAndDrawGeo();
+  document.getElementById("count").textContent = (TRACKS[decadeId] || []).length + " markers";
+}
+function buildMarkers(decadeId) {
+  clearMarkers();
+  const tracks = TRACKS[decadeId] || [];
+  const size = window.innerWidth < 500 ? 0.018 : 0.014;
+  tracks.forEach((t, i) => {
+    const lat = (Math.sin(i * 1.7) * 60) + (Math.random() * 20 - 10);
+    const lon = (i * 37) % 360 - 180;
+    const pos = latLonToVec3(lat, lon, 1.02);
+    const geo = new THREE.SphereGeometry(size, 8, 8);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const marker = new THREE.Mesh(geo, mat);
+    marker.position.copy(pos);
+    marker.userData = { ...t, decade: decadeId, lat, lon };
+    scene.add(marker);
+    markers.push(marker);
+  });
+}
+async function loadAndDrawGeo() {
+  if (geoLines) scene.remove(geoLines);
+  try {
+    const res = await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json");
+    const topology = await res.json();
+    const group = new THREE.Group();
+    const material = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.22 });
+    const transform = topology.transform || { scale: [1, 1], translate: [0, 0] };
+    const scale = transform.scale;
+    const translate = transform.translate;
+    function decodeArc(arc) {
+      let x = 0, y = 0;
+      const points = [];
+      for (const [dx, dy] of arc) {
+        x += dx;
+        y += dy;
+        const lon = x * scale[0] + translate[0];
+        const lat = y * scale[1] + translate[1];
+        points.push(latLonToVec3(lat, lon, 1.006));
+      }
+      return points;
+    }
+    (topology.arcs || []).slice(0, 280).forEach(arc => {
+      const pts = decodeArc(arc);
+      if (pts.length > 2) {
+        const geom = new THREE.BufferGeometry().setFromPoints(pts);
+        group.add(new THREE.Line(geom, material));
+      }
+    });
+    geoLines = group;
+    scene.add(geoLines);
+  } catch (e) {
+    console.warn("Geo outline load failed", e);
+  }
+}
+const select = document.getElementById("decade-select");
+DECADES.forEach(d => {
+  const opt = document.createElement("option");
+  opt.value = d.id;
+  opt.textContent = d.label;
+  if (d.id === "2020s") opt.selected = true;
+  select.appendChild(opt);
+});
+select.onchange = () => {
+  currentDecade = select.value;
+  buildGlobe(currentDecade);
+};
+document.getElementById("auto-toggle").onclick = (e) => {
+  controls.autoRotate = !controls.autoRotate;
+  e.target.textContent = controls.autoRotate ? "ON" : "OFF";
+  e.target.classList.toggle("on", controls.autoRotate);
+};
+document.getElementById("geo-toggle").onclick = (e) => {
+  showGeo = !showGeo;
+  e.target.textContent = showGeo ? "ON" : "OFF";
+  e.target.classList.toggle("on", showGeo);
+  if (showGeo) loadAndDrawGeo();
+  else if (geoLines) scene.remove(geoLines);
+};
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+renderer.domElement.addEventListener("pointerdown", (event) => {
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(markers);
+  if (hits.length) openPlayer(hits[0].object.userData);
+});
+function openPlayer(data) {
+  const modal = document.getElementById("player-modal");
+  document.getElementById("player-title").textContent = data.title;
+  document.getElementById("player-meta").textContent = `${data.artist} · ${data.year} · ${data.decade}`;
+  const iframe = document.getElementById("player-iframe");
+  iframe.src = `https://www.youtube.com/embed/${data.youtubeId}?autoplay=1&rel=0`;
+  const links = document.getElementById("player-links");
+  links.innerHTML = `
+    <a href="https://www.youtube.com/watch?v=${data.youtubeId}" target="_blank">YouTube</a>
+    <a href="https://open.spotify.com/search/${encodeURIComponent(data.artist + " " + data.title)}" target="_blank">Spotify</a>
+    <a href="https://soundcloud.com/search?q=${encodeURIComponent(data.artist + " " + data.title)}" target="_blank">SoundCloud</a>
+    <a href="https://www.discogs.com/search/?q=${encodeURIComponent(data.artist + " " + data.title)}" target="_blank">Discogs</a>
+  `;
+  modal.classList.add("open");
+}
+document.getElementById("close-player").onclick = () => {
+  document.getElementById("player-modal").classList.remove("open");
+  document.getElementById("player-iframe").src = "";
+};
+buildGlobe("2020s");
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  buildMarkers(currentDecade);
+});
+</script>
+</body>
+</html>
