@@ -2,6 +2,11 @@
 
 One distinct disco globe per decade.
 
+## Live
+**GitHub Pages:** https://jujubeans85.github.io/disco-globe/
+
+(Netlify mirrors available while fully populated: https://disco-juice.netlify.app/ and https://global-juice.netlify.app/)
+
 ## Features
 - 23 decades (1800s through 2020s)
 - Unique visual style per decade (color, metalness, roughness, emissive, lighting)
@@ -12,7 +17,7 @@ One distinct disco globe per decade.
 - Home Screen / PWA ready (SVG + apple-touch-icon + manifest)
 
 ## How to use
-Open `index.html` in a modern browser (or host on Netlify / GitHub Pages).
+Open the live Pages URL above, or `index.html` locally.
 
 Select decade from the top dropdown. Drag to rotate, pinch/scroll to zoom, tap white markers to play.
 
@@ -21,4 +26,6 @@ Tracks are strong public-domain or widely available full-length representations 
 
 Geo outlines are approximate low-resolution country/continent lines projected onto the sphere surface.
 
-Live: https://global-juice.netlify.app/
+## Deployment
+- GitHub Pages: Settings → Pages → Deploy from branch → `main` / root
+- Netlify continuous deploy can be linked later once fully populated and tested
