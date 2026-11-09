@@ -1,10 +1,13 @@
 name: Disco Juice checks
 on:
   push:
-    branches: [fix/ios-geo-music-discovery-20261109]
+    branches: [main]
   pull_request:
     paths:
       - 'index.html'
+      - 'manifest.webmanifest'
+      - 'netlify.toml'
+      - 'README.md'
       - '*.js'
       - 'styles.css'
       - 'package.json'
