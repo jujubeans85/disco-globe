@@ -56,3 +56,27 @@ test('iPhone layout is safe-area aware, with no fixed-scale zoom ban or random p
  assert.doesNotMatch(app,/Math\.random/);
  assert.match(app,/raycaster\.intersectObjects/);
 });
+
+test('the canonical GitHub Pages address is used everywhere, including iOS install scope',()=>{
+ const target='https://jujubeans85.github.io/disco-globe/';
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const manifest=JSON.parse(readFileSync(new URL('../manifest.webmanifest',import.meta.url),'utf8'));
+ const config=readFileSync(new URL('../netlify.toml',import.meta.url),'utf8');
+ const workflow=readFileSync(new URL('../.github/workflows/test.yml',import.meta.url),'utf8');
+ assert.ok(html.includes('<link rel="canonical" href="'+target+'">'));
+ assert.ok(html.includes('<meta property="og:url" content="'+target+'">'));
+ assert.equal((html.match(/rel="canonical"/g)||[]).length,1);
+ assert.equal(manifest.id,'/disco-globe/');
+ assert.equal(manifest.start_url,'/disco-globe/');
+ assert.equal(manifest.scope,'/disco-globe/');
+ assert.ok(manifest.icons.length>=1);
+ for(const icon of manifest.icons){
+  assert.ok(!icon.src.startsWith('/'), 'manifest icon should remain in GitHub Pages project scope');
+  const asset=readFileSync(new URL('../'+icon.src.replace(/^\.\//,''),import.meta.url));
+  assert.ok(asset.length>0, 'icon asset present: '+icon.src);
+ }
+ assert.match(config,/to\s*=\s*"https:\/\/jujubeans85\.github\.io\/disco-globe\/:splat"/);
+ assert.match(config,/status\s*=\s*301/);
+ assert.match(config,/force\s*=\s*true/);
+ assert.match(workflow,/branches:\s*\[main\]/);
+});
