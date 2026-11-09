@@ -1,0 +1,10 @@
+{
+  "name": "disco-juice",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check app.js && node --check catalogue.js && node --check discovery.js && node --check legacy.js",
+    "test": "node --test tests/*.test.mjs"
+  }
+}
