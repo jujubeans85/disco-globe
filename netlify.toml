@@ -6,3 +6,11 @@
   [headers.values]
     X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
+
+# Legacy Netlify deployments are retired in favour of the GitHub Pages source of truth.
+# Netlify applies this only after the site is deployed with this configuration.
+[[redirects]]
+  from = "/*"
+  to = "https://jujubeans85.github.io/disco-globe/:splat"
+  status = 301
+  force = true
