@@ -1,473 +1,71 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Disco Juice">
-<meta name="theme-color" content="#07070a">
-<link rel="icon" type="image/svg+xml" href="icon.svg">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="manifest" href="manifest.webmanifest">
-<title>Disco Juice — Decade Globes</title>
-<style>
-  :root {
-    --bg: #07070a;
-    --panel: #111118ee;
-    --neon: #ff2d95;
-    --text: #f0f0f5;
-    --muted: #888;
-    --border: #2a2a35;
-    --ui-scale: 1;
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
-    --safe-top: env(safe-area-inset-top, 0px);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-    overflow: hidden;
-    height: 100vh; height: 100dvh;
-    font-size: calc(14px * var(--ui-scale));
-    touch-action: none;
-  }
-  #canvas-container { position: absolute; inset: 0; }
-  .ui { position: absolute; z-index: 20; pointer-events: none; }
-  .ui > * { pointer-events: auto; }
-  header {
-    top: calc(8px + var(--safe-top)); left: 12px; right: 12px;
-    display: flex; justify-content: space-between; align-items: center; gap: 8px;
-  }
-  .logo { font-weight: 700; font-size: calc(15px * var(--ui-scale)); white-space: nowrap; }
-  .logo span { color: var(--neon); }
-  .decade-select {
-    background: rgba(0,0,0,0.6); border: 1px solid #333; color: #eee;
-    padding: 6px 10px; border-radius: 999px; font-size: calc(12px * var(--ui-scale));
-    backdrop-filter: blur(12px); max-width: 140px;
-  }
-  .tweaks {
-    position: absolute; left: 12px; right: 12px; bottom: calc(56px + var(--safe-bottom));
-    width: auto; max-width: 320px;
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 14px; padding: 10px 12px; backdrop-filter: blur(16px);
-    font-size: calc(13px * var(--ui-scale));
-    max-height: 32vh; overflow-y: auto;
-  }
-  .hint { bottom: calc(12px + var(--safe-bottom)) !important; }
-  .tweaks h3 {
-    font-size: calc(11px * var(--ui-scale)); letter-spacing: 0.8px; color: var(--muted);
-    margin-bottom: 8px; text-transform: uppercase;
-  }
-  .tweak-row {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 8px; gap: 8px;
-  }
-  .tweak-row label { color: #ccc; flex: 1; }
-  .tweak-row button.toggle {
-    background: #222; border: 1px solid #333; color: #aaa; border-radius: 8px;
-    padding: 6px 12px; font-size: calc(12px * var(--ui-scale)); cursor: pointer; min-width: 48px;
-  }
-  .tweak-row button.toggle.on { background: var(--neon); color: #000; border-color: var(--neon); }
-  .count { position: absolute; top: calc(52px + var(--safe-top)); left: 12px; font-size: calc(11px * var(--ui-scale)); color: var(--muted); }
-  .hint {
-    position: absolute; bottom: calc(8px + var(--safe-bottom)); left: 50%; transform: translateX(-50%);
-    font-size: calc(10px * var(--ui-scale)); color: var(--muted);
-    background: rgba(0,0,0,0.5); padding: 4px 10px; border-radius: 8px;
-    max-width: 85vw; text-align: center; pointer-events: none;
-  }
-  /* Player modal */
-  #player-modal {
-    display: none; position: fixed; inset: 0; z-index: 100;
-    background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
-    align-items: center; justify-content: center; padding: 16px;
-  }
-  #player-modal.open { display: flex; }
-  .player-card {
-    background: #111118; border: 1px solid #2a2a35; border-radius: 16px;
-    width: min(420px, 100%); padding: 16px; position: relative;
-  }
-  .player-card h2 { font-size: 16px; margin-bottom: 4px; }
-  .player-card .meta { color: #888; font-size: 12px; margin-bottom: 12px; }
-  .player-card iframe { width: 100%; aspect-ratio: 16/9; border: 0; border-radius: 8px; background: #000; }
-  .links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-  .links a {
-    background: #222; color: #eee; text-decoration: none; padding: 6px 10px;
-    border-radius: 8px; font-size: 12px; border: 1px solid #333;
-  }
-  .links a:hover { background: var(--neon); color: #000; }
-  .close-btn {
-    position: absolute; top: 8px; right: 8px; background: none; border: none;
-    color: #888; font-size: 20px; cursor: pointer; width: 32px; height: 32px;
-  }
-
-  .live-feed {
-    position: absolute; top: calc(52px + var(--safe-top)); right: 12px;
-    width: min(260px, calc(100vw - 24px)); max-height: 36vh; overflow-y: auto;
-    background: var(--panel); border: 1px solid var(--border);
-    border-radius: 14px; padding: 10px 12px; backdrop-filter: blur(16px);
-    font-size: calc(12px * var(--ui-scale)); z-index: 25;
-  }
-  .live-feed h3 { font-size: 11px; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; }
-  .live-item { padding: 4px 0; border-bottom: 1px solid #222; cursor: pointer; }
-  .live-item:hover { color: var(--neon); }
-  .live-item .rank { color: var(--neon); font-weight: 600; margin-right: 4px; }
-
-
-  @media (max-width: 520px) {
-    .live-feed { max-height: 22vh; font-size: 11px; }
-    .tweaks { max-height: 28vh; }
-  }
-  .live-feed.collapsed { max-height: 36px; overflow: hidden; }
-
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07070a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Disco Juice">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="stylesheet" href="./styles.css">
+  <title>Disco Juice — Music Around the World</title>
 </head>
 <body>
-<div id="canvas-container"></div>
+  <div id="canvas-container" aria-label="Interactive rotating musical globe"></div>
+  <main class="ui">
+    <header class="masthead">
+      <div class="brand">DISCO <span>JUICE</span></div>
+      <div class="header-actions">
+        <button class="chip" id="charts-toggle" type="button" aria-expanded="false" aria-controls="chart-panel">Live charts</button>
+      </div>
+    </header>
 
-<div class="ui">
-  <header>
-    <div class="logo">DISCO <span>JUICE</span></div>
-    <select id="decade-select" class="decade-select"></select>
-  </header>
-  
-  <div class="live-feed" id="live-feed">
-    <h3>Live Charts <button id="feed-toggle" style="float:right;background:none;border:none;color:#888;cursor:pointer">−</button></h3>
-    <div id="live-list">Loading…</div>
-  </div>
+    <section class="filters" aria-label="Music discovery filters">
+      <div class="filter"><label for="decade-select">Decade</label><select id="decade-select"></select></div>
+      <div class="filter"><label for="genre-select">Genre</label><select id="genre-select"></select></div>
+      <div class="filter"><label for="mood-select">Mood</label><select id="mood-select"></select></div>
+      <div class="filter"><label for="country-select">Country / area</label><select id="country-select"></select></div>
+      <div class="filter wide"><label for="search-input">Find artist, track, scene</label><input id="search-input" type="search" placeholder="Search music and places…" autocomplete="off"></div>
+      <div class="filter-actions">
+        <button type="button" id="reset-filters" title="Clear all filters except decade">Reset</button>
+        <button type="button" id="rotate-toggle" class="on" aria-pressed="true">Spin on</button>
+        <button type="button" id="geo-toggle" class="on" aria-pressed="true">Borders on</button>
+      </div>
+    </section>
 
-  <div class="count" id="count">0 markers</div>
-  <div class="tweaks">
-    <h3>Controls</h3>
-    <div class="tweak-row">
-      <label>Auto-rotate</label>
-      <button id="auto-toggle" class="toggle on">ON</button>
+    <aside id="chart-panel" class="chart-panel" hidden aria-label="Current US iTunes chart, independent of decade filter">
+      <div class="chart-head"><span>US chart <small>· live, any decade</small></span><button type="button" class="mini-action" id="chart-close" aria-label="Close live chart">×</button></div>
+      <div id="chart-list"><div class="status-line" style="padding:12px">Open to load live chart</div></div>
+    </aside>
+
+    <section class="track-panel" aria-label="Matching music tracks">
+      <div class="panel-head">
+        <div class="panel-headline"><span class="panel-title">Explore music</span><span id="panel-count" class="panel-count">Loading…</span></div>
+        <div class="panel-summary"><span id="panel-summary">Browse by decade, genre, mood and place</span><span id="scene-label"></span></div>
+        <div id="discovery-status" class="status-line" aria-live="polite"></div>
+      </div>
+      <div id="track-list" class="track-list" role="list"></div>
+      <div class="panel-foot"><span id="panel-page">Music-scene pins are approximate</span><button id="show-more" type="button">Show more</button></div>
+    </section>
+    <div class="info-note">Place pins show associated cities/scenes, not verified recording studios. Some catalogue records have no mapped location.</div>
+  </main>
+
+  <div id="player-modal" role="dialog" aria-modal="true" aria-labelledby="player-title">
+    <div class="player-card">
+      <button id="close-player" class="close-btn" aria-label="Close player" type="button">×</button>
+      <h2 id="player-title" class="player-title">Track</h2>
+      <div id="player-meta" class="player-meta"></div>
+      <iframe id="player-iframe" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="YouTube music player" hidden></iframe>
+      <div id="player-note" class="modal-note"></div>
+      <nav id="player-links" class="links" aria-label="Music platform links"></nav>
     </div>
-    <div class="tweak-row">
-      <label>Geo outline</label>
-      <button id="geo-toggle" class="toggle on">ON</button>
-    </div>
   </div>
-  <div class="hint">Drag to rotate · Pinch to zoom · Tap markers to play</div>
-</div>
 
-<div id="player-modal">
-  <div class="player-card">
-    <button class="close-btn" id="close-player">×</button>
-    <h2 id="player-title">Track</h2>
-    <div class="meta" id="player-meta"></div>
-    <iframe id="player-iframe" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-    <div class="links" id="player-links"></div>
-  </div>
-</div>
-
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-  }
-}
-</script>
-<script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-// ── Decade styles (unique look per decade) ──
-const DECADES = [
-  { id: "1800s", label: "1800s", color: 0x4a3728, emissive: 0x1a1008, metal: 0.3, rough: 0.7, light: 0xffcc99 },
-  { id: "1810s", label: "1810s", color: 0x3a2a20, emissive: 0x120c08, metal: 0.4, rough: 0.65, light: 0xffbb88 },
-  { id: "1820s", label: "1820s", color: 0x2e3a28, emissive: 0x0c1408, metal: 0.5, rough: 0.6, light: 0xccffaa },
-  { id: "1830s", label: "1830s", color: 0x2a2a3a, emissive: 0x080c14, metal: 0.6, rough: 0.55, light: 0xaaccff },
-  { id: "1840s", label: "1840s", color: 0x3a2a3a, emissive: 0x140814, metal: 0.55, rough: 0.5, light: 0xffaacc },
-  { id: "1850s", label: "1850s", color: 0x2a3a3a, emissive: 0x081414, metal: 0.7, rough: 0.45, light: 0xaaeeff },
-  { id: "1860s", label: "1860s", color: 0x3a2a1a, emissive: 0x140c04, metal: 0.45, rough: 0.6, light: 0xffdd88 },
-  { id: "1870s", label: "1870s", color: 0x1a2a3a, emissive: 0x040c14, metal: 0.75, rough: 0.4, light: 0x88ccff },
-  { id: "1880s", label: "1880s", color: 0x2a1a2a, emissive: 0x100410, metal: 0.65, rough: 0.42, light: 0xee88ff },
-  { id: "1890s", label: "1890s", color: 0x1a1a2a, emissive: 0x040414, metal: 0.8, rough: 0.35, light: 0xaaaaee },
-  { id: "1900s", label: "1900s", color: 0x2a2a1a, emissive: 0x101004, metal: 0.5, rough: 0.5, light: 0xeeff88 },
-  { id: "1910s", label: "1910s", color: 0x3a1a1a, emissive: 0x140404, metal: 0.6, rough: 0.48, light: 0xff8888 },
-  { id: "1920s", label: "1920s", color: 0x1a3a2a, emissive: 0x04140c, metal: 0.85, rough: 0.3, light: 0x88ffaa },
-  { id: "1930s", label: "1930s", color: 0x2a1a3a, emissive: 0x0c0414, metal: 0.7, rough: 0.38, light: 0xcc88ff },
-  { id: "1940s", label: "1940s", color: 0x1a2a2a, emissive: 0x040c0c, metal: 0.55, rough: 0.5, light: 0x88eeee },
-  { id: "1950s", label: "1950s", color: 0x3a3a1a, emissive: 0x141404, metal: 0.9, rough: 0.25, light: 0xffff88 },
-  { id: "1960s", label: "1960s", color: 0xff2d55, emissive: 0x4a0a1a, metal: 0.85, rough: 0.2, light: 0xff6b9d },
-  { id: "1970s", label: "1970s", color: 0xff6b35, emissive: 0x4a1a0a, metal: 0.8, rough: 0.25, light: 0xffaa66 },
-  { id: "1980s", label: "1980s", color: 0x00e5ff, emissive: 0x0a2a4a, metal: 0.95, rough: 0.15, light: 0x66ffff },
-  { id: "1990s", label: "1990s", color: 0x39ff14, emissive: 0x0a4a0a, metal: 0.9, rough: 0.18, light: 0x88ff66 },
-  { id: "2000s", label: "2000s", color: 0xffd166, emissive: 0x4a3a0a, metal: 0.85, rough: 0.22, light: 0xffee88 },
-  { id: "2010s", label: "2010s", color: 0xc77dff, emissive: 0x3a0a4a, metal: 0.92, rough: 0.12, light: 0xeeaaff },
-  { id: "2020s", label: "2020s", color: 0xff2d95, emissive: 0x4a0a2a, metal: 1.0, rough: 0.1, light: 0xff6bb5 }
-];
-
-// ── Curated full-length tracks per decade (representative, public YouTube embeds) ──
-const TRACKS = {"1800s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1810s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1820s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1830s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1840s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1850s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1860s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1870s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1880s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1890s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1900s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1910s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1920s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1930s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1940s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1950s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1960s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1970s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1980s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"1990s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"2000s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"2010s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}],"2020s":[{"artist":"Ludwig van Beethoven","title":"Moonlight Sonata (Full)","youtubeId":"4Tr0otuiQuU","year":1801},{"artist":"Ludwig van Beethoven","title":"Symphony No. 5","youtubeId":"jv2WJMVPQi8","year":1808},{"artist":"Ludwig van Beethoven","title":"F\u00fcr Elise","youtubeId":"Lkx8YToj_Wo","year":1810},{"artist":"Franz Schubert","title":"Ave Maria","youtubeId":"2bosouX_d8Y","year":1825},{"artist":"Fr\u00e9d\u00e9ric Chopin","title":"Nocturne Op. 9 No. 2","youtubeId":"9E6b3swbnWg","year":1832},{"artist":"Richard Wagner","title":"Ride of the Valkyries","youtubeId":"GGU1P6lBW6Q","year":1856},{"artist":"Pyotr Tchaikovsky","title":"1812 Overture","youtubeId":"VbxgYlcNxE8","year":1880},{"artist":"Claude Debussy","title":"Clair de Lune","youtubeId":"ea2WoUtbzuw","year":1890},{"artist":"Johannes Brahms","title":"Hungarian Dance No. 5","youtubeId":"Nzo3atXtcgg","year":1869},{"artist":"Scott Joplin","title":"The Entertainer","youtubeId":"fPmruHc4S9Q","year":1902},{"artist":"Louis Armstrong","title":"West End Blues","youtubeId":"4WPCBieSESI","year":1928},{"artist":"George Gershwin","title":"Rhapsody in Blue","youtubeId":"eFHdRkeEnpM","year":1924},{"artist":"Duke Ellington","title":"It Don't Mean a Thing","youtubeId":"qDQpZT3GhDg","year":1932},{"artist":"Billie Holiday","title":"Strange Fruit","youtubeId":"Web007rzSOI","year":1939},{"artist":"Charlie Parker","title":"Ko-Ko","youtubeId":"okrNwE6GI70","year":1945},{"artist":"Elvis Presley","title":"Hound Dog","youtubeId":"lzQ8GDBA8Is","year":1956},{"artist":"Chuck Berry","title":"Johnny B. Goode","youtubeId":"ZFo8-JqzSCM","year":1958},{"artist":"The Beatles","title":"Hey Jude","youtubeId":"A_MjCqQoLLA","year":1968},{"artist":"Aretha Franklin","title":"Respect","youtubeId":"6FOUqQt3Kg0","year":1967},{"artist":"Led Zeppelin","title":"Whole Lotta Love","youtubeId":"qLrnkK2YEcE","year":1969},{"artist":"Bee Gees","title":"Stayin' Alive","youtubeId":"I_izvAbhExY","year":1977},{"artist":"Donna Summer","title":"I Feel Love","youtubeId":"yEbaeLv-aOo","year":1977},{"artist":"Chic","title":"Le Freak","youtubeId":"aXgSHL7efKg","year":1978},{"artist":"Michael Jackson","title":"Billie Jean","youtubeId":"Zi_XLOBDo_Y","year":1982},{"artist":"Prince","title":"Purple Rain","youtubeId":"TvnYmWpD_T8","year":1984},{"artist":"New Order","title":"Blue Monday","youtubeId":"9GMjH1nR0ds","year":1983},{"artist":"Nirvana","title":"Smells Like Teen Spirit","youtubeId":"hTWKbfoikeg","year":1991},{"artist":"The Prodigy","title":"Out of Space","youtubeId":"a4eav7dFvc8","year":1992},{"artist":"Underworld","title":"Born Slippy (Nuxx)","youtubeId":"F_VbqvWRCkI","year":1996},{"artist":"Daft Punk","title":"Around the World","youtubeId":"dwDns8x3Jb4","year":1997},{"artist":"Daft Punk","title":"One More Time","youtubeId":"FGBhQbmPwH8","year":2000},{"artist":"Justice","title":"D.A.N.C.E.","youtubeId":"tCnBrrnOefs","year":2007},{"artist":"Burial","title":"Archangel","youtubeId":"PzYrr7K1dvU","year":2007},{"artist":"FISHER","title":"Losing It","youtubeId":"u31thuMehjM","year":2018},{"artist":"Disclosure","title":"Latch","youtubeId":"93ASUImTedo","year":2012},{"artist":"R\u00dcF\u00dcS DU SOL","title":"Innerbloom","youtubeId":"XglN2D2nZUE","year":2016},{"artist":"Peggy Gou","title":"(It Goes Like) Nanana","youtubeId":"sCz5y84dwuAI","year":2023},{"artist":"Anyma","title":"Higher Power","youtubeId":"7jf1lhagpfY","year":2023},{"artist":"Beyonc\u00e9","title":"Break My Soul","youtubeId":"H1v5Yw6p5vM","year":2022},{"artist":"Aphex Twin","title":"Windowlicker","youtubeId":"UBS4Gi1y_nc","year":1999}]};
-
-// ── Scene setup ──
-const container = document.getElementById("canvas-container");
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x07070a);
-
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(0, 0, 3.4);
-
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-container.appendChild(renderer.domElement);
-
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.08;
-controls.minDistance = 1.6;
-controls.maxDistance = 6;
-controls.autoRotate = true;
-controls.autoRotateSpeed = 0.4;
-
-const ambient = new THREE.AmbientLight(0x202030, 0.4);
-scene.add(ambient);
-const key = new THREE.DirectionalLight(0xffffff, 0.85);
-key.position.set(4, 3, 5);
-scene.add(key);
-const neonLight = new THREE.PointLight(0xff2d95, 1.8, 8);
-neonLight.position.set(-2.2, 1.4, 2.2);
-scene.add(neonLight);
-
-let globe, geoLines, markers = [];
-let currentDecade = "2020s";
-let showGeo = true;
-
-function latLonToVec3(lat, lon, radius = 1.01) {
-  const phi = (90 - lat) * Math.PI / 180;
-  const theta = (lon + 180) * Math.PI / 180;
-  return new THREE.Vector3(
-    -radius * Math.sin(phi) * Math.cos(theta),
-    radius * Math.cos(phi),
-    radius * Math.sin(phi) * Math.sin(theta)
-  );
-}
-
-function clearMarkers() {
-  markers.forEach(m => scene.remove(m));
-  markers = [];
-}
-
-function buildGlobe(decadeId) {
-  if (globe) scene.remove(globe);
-  if (geoLines) scene.remove(geoLines);
-
-  const style = DECADES.find(d => d.id === decadeId) || DECADES[DECADES.length - 1];
-  const mat = new THREE.MeshPhysicalMaterial({
-    color: style.color,
-    metalness: style.metal,
-    roughness: style.rough,
-    clearcoat: 0.35,
-    emissive: style.emissive,
-    emissiveIntensity: 0.25
-  });
-  globe = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 64), mat);
-  scene.add(globe);
-
-  neonLight.color.setHex(style.light);
-  key.color.setHex(style.light);
-
-  buildMarkers(decadeId);
-  if (showGeo) loadAndDrawGeo();
-  document.getElementById("count").textContent = (TRACKS[decadeId] || []).length + " markers";
-}
-
-function buildMarkers(decadeId) {
-  clearMarkers();
-  const tracks = TRACKS[decadeId] || [];
-  const size = window.innerWidth < 500 ? 0.028 : 0.018;
-  tracks.forEach((t, i) => {
-    // Distribute roughly by origin region or seeded random
-    const lat = (Math.sin(i * 1.7) * 60) + (Math.random() * 20 - 10);
-    const lon = (i * 37) % 360 - 180;
-    const pos = latLonToVec3(lat, lon, 1.02);
-    const geo = new THREE.SphereGeometry(size, 12, 12);
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      emissive: 0xff6bb5,
-      emissiveIntensity: 0.85,
-      metalness: 0.2,
-      roughness: 0.3
-    });
-    const marker = new THREE.Mesh(geo, mat);
-    // soft glow halo
-    const halo = new THREE.Mesh(
-      new THREE.SphereGeometry(size * 1.8, 8, 8),
-      new THREE.MeshBasicMaterial({ color: 0xff2d95, transparent: true, opacity: 0.18, depthWrite: false })
-    );
-    marker.add(halo);
-    marker.position.copy(pos);
-    marker.userData = { ...t, decade: decadeId, lat, lon };
-    scene.add(marker);
-    markers.push(marker);
-  });
-}
-
-async function loadAndDrawGeo() {
-  if (geoLines) scene.remove(geoLines);
-  try {
-    const res = await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json");
-    const topology = await res.json();
-    const group = new THREE.Group();
-    const material = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.28 });
-
-    const transform = topology.transform || { scale: [1, 1], translate: [0, 0] };
-    const scale = transform.scale;
-    const translate = transform.translate;
-
-    function decodeArc(arc) {
-      let x = 0, y = 0;
-      const points = [];
-      for (const [dx, dy] of arc) {
-        x += dx;
-        y += dy;
-        const lon = x * scale[0] + translate[0];
-        const lat = y * scale[1] + translate[1];
-        points.push(latLonToVec3(lat, lon, 1.004));
-      }
-      return points;
-    }
-
-    // Draw a subset of arcs for continents/countries (performance)
-    (topology.arcs || []).slice(0, 1400).forEach(arc => {
-      const pts = decodeArc(arc);
-      if (pts.length > 2) {
-        const geom = new THREE.BufferGeometry().setFromPoints(pts);
-        group.add(new THREE.Line(geom, material));
-      }
-    });
-
-    geoLines = group;
-    scene.add(geoLines);
-  } catch (e) {
-    console.warn("Geo outline load failed", e);
-  }
-}
-
-// ── UI ──
-const select = document.getElementById("decade-select");
-DECADES.forEach(d => {
-  const opt = document.createElement("option");
-  opt.value = d.id;
-  opt.textContent = d.label;
-  if (d.id === "2020s") opt.selected = true;
-  select.appendChild(opt);
-});
-select.onchange = () => {
-  currentDecade = select.value;
-  buildGlobe(currentDecade);
-};
-
-document.getElementById("auto-toggle").onclick = (e) => {
-  controls.autoRotate = !controls.autoRotate;
-  e.target.textContent = controls.autoRotate ? "ON" : "OFF";
-  e.target.classList.toggle("on", controls.autoRotate);
-};
-document.getElementById("geo-toggle").onclick = (e) => {
-  showGeo = !showGeo;
-  e.target.textContent = showGeo ? "ON" : "OFF";
-  e.target.classList.toggle("on", showGeo);
-  if (showGeo) loadAndDrawGeo();
-  else if (geoLines) scene.remove(geoLines);
-};
-
-// Raycast for player
-const raycaster = new THREE.Raycaster();
-raycaster.params.Points = { threshold: 0.04 };
-raycaster.params.Line = { threshold: 0.02 };
-const mouse = new THREE.Vector2();
-renderer.domElement.addEventListener("pointerdown", (event) => {
-  const rect = renderer.domElement.getBoundingClientRect();
-  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-  const hits = raycaster.intersectObjects(markers, true);
-  if (hits.length) {
-    let obj = hits[0].object;
-    while (obj && !obj.userData?.youtubeId) obj = obj.parent;
-    if (obj?.userData?.youtubeId) openPlayer(obj.userData);
-  }
-});
-
-function openPlayer(data) {
-  if (!data || !data.youtubeId) return;
-  const modal = document.getElementById("player-modal");
-  document.getElementById("player-title").textContent = data.title || "Track";
-  document.getElementById("player-meta").textContent = `${data.artist || ""} · ${data.year || ""} · ${data.decade || ""}`;
-  const iframe = document.getElementById("player-iframe");
-  // Ad-blocker proxy path (swap PROXY_BASE for your own yt-proxy / invidious / piped instance)
-const PROXY_BASE = ""; // e.g. "https://pipedapi.kavin.rocks" or self-hosted
-const embedUrl = PROXY_BASE
-  ? `${PROXY_BASE}/watch?v=${data.youtubeId}&autoplay=1`
-  : `https://www.youtube-nocookie.com/embed/${data.youtubeId}?autoplay=1&rel=0&modestbranding=1`;
-iframe.src = embedUrl;
-  const links = document.getElementById("player-links");
-  links.innerHTML = `
-    <a href="https://www.youtube.com/watch?v=${data.youtubeId}" target="_blank">YouTube</a>
-    <a href="https://open.spotify.com/search/${encodeURIComponent(data.artist + " " + data.title)}" target="_blank">Spotify</a>
-    <a href="https://soundcloud.com/search?q=${encodeURIComponent(data.artist + " " + data.title)}" target="_blank">SoundCloud</a>
-    <a href="https://www.discogs.com/search/?q=${encodeURIComponent(data.artist + " " + data.title)}" target="_blank">Discogs</a>
-  `;
-  modal.classList.add("open");
-}
-document.getElementById("close-player").onclick = () => {
-  document.getElementById("player-modal").classList.remove("open");
-  document.getElementById("player-iframe").src = "";
-};
-
-// Init
-buildGlobe("2020s");
-
-async function loadLiveCharts() {
-  const list = document.getElementById("live-list");
-  try {
-    const res = await fetch("https://itunes.apple.com/us/rss/topsongs/limit=20/json");
-    const data = await res.json();
-    const entries = data.feed.entry || [];
-    list.innerHTML = entries.slice(0, 12).map((e, i) => {
-      const title = e["im:name"]?.label || "";
-      const artist = e["im:artist"]?.label || "";
-      const url = e.link?.[0]?.attributes?.href || "#";
-      return `<div class="live-item" data-url="${url}"><span class="rank">${i+1}</span> ${title} <span style="color:#888">· ${artist}</span></div>`;
-    }).join("");
-    list.querySelectorAll(".live-item").forEach(el => {
-      el.onclick = () => window.open(el.dataset.url, "_blank");
-    });
-  } catch (err) {
-    list.textContent = "Charts unavailable";
-    console.warn(err);
-  }
-}
-loadLiveCharts();
-setInterval(loadLiveCharts, 5 * 60 * 1000);
-
-document.getElementById("feed-toggle")?.addEventListener("click", (e) => {
-  const feed = document.getElementById("live-feed");
-  feed.classList.toggle("collapsed");
-  e.target.textContent = feed.classList.contains("collapsed") ? "+" : "−";
-});
-
-
-
-function animate() {
-  requestAnimationFrame(animate);
-  controls.update();
-  renderer.render(scene, camera);
-}
-animate();
-
-window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  buildMarkers(currentDecade);
-});
-</script>
+  <script type="importmap">
+    {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+  </script>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>
