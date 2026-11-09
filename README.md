@@ -1,6 +1,12 @@
 # Disco Juice — globe-based music discovery
 
-Live main branch: https://jujubeans85.github.io/disco-globe/
+**Canonical / official app:** https://jujubeans85.github.io/disco-globe/
+
+**Single source of truth:** `jujubeans85/disco-globe` → `main` → GitHub Pages. Do not publish separate feature copies on Netlify or create alternate app front ends.
+
+To install on iPhone: open the official URL in **Safari** → **Share** → **Add to Home Screen**. If an older shortcut opens `disco-juice.netlify.app` or `global-juice.netlify.app`, test the new shortcut and then remove the old one. Existing standalone icons cannot be remotely re-pointed to another website origin.
+
+The web manifest uses `/disco-globe/` for `id`, `start_url` and `scope`, avoiding the old `start_url: /` issue that could send GitHub Pages installations to the account homepage.
 
 ## Fixes
 
@@ -38,6 +44,12 @@ npm test
 
 GitHub Actions also runs a Chromium mobile viewport smoke test at widths 320, 390 and 430 CSS pixels. A Chrome viewport test does not replace a test on a physical iPhone/Safari.
 
-## Deployment
+## Deployment and legacy mirrors
 
-GitHub Pages uses main at the repository root. The feature branch is not the live Home Screen deployment until merged. Netlify deployment previews depend on the site's connection.
+GitHub Pages deploys `main` from the repository root and is the **only official launch URL**. Page metadata (`rel=canonical`, Open Graph URL) and Home Screen manifest point there.
+
+The two older Netlify addresses (`disco-juice.netlify.app` and `global-juice.netlify.app`) are **legacy mirrors, not publication targets**. Their most recently inspected production deploys were manual uploads from 2 November 2026, not deployments linked to this repo. Updating GitHub cannot update their already-published content.
+
+The root `netlify.toml` now contains a permanent `301` redirect to the official GitHub Pages address, preserving deep URL paths. **This rule only becomes active when a Netlify site is actually redeployed with the new configuration**. The connected Netlify actions available in this environment are read-only for deployment; the manual mirror re-publish must be completed separately in Netlify. Do not claim those two redirects are live until verified.
+
+Canonical checks run through the same test workflow on each pull request and on `main`, including a mobile viewport smoke test.
