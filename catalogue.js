@@ -26,13 +26,14 @@ const oldUnique = LEGACY.filter(t=>!curatedKeys.has(canonicalKey(t.artist,t.titl
 export const CURATED = Object.freeze([...featured,...oldUnique].sort((a,b)=>b.year-a.year||a.artist.localeCompare(b.artist)));
 export const BY_DECADE = Object.fromEntries(DECADE_IDS.map(d=>[d,CURATED.filter(t=>t.decade===d)]));
 export const hasMappedLocation = t => Number.isFinite(t.lat)&&Number.isFinite(t.lon)&&!!t.country;
-export function filterTracks(tracks,{decade='all',genre='all',mood='all',country='all',query=''}={}) {
+export function filterTracks(tracks,{decade='all',genre='all',mood='all',country='all',city='all',query=''}={}) {
   const needle=String(query).trim().toLocaleLowerCase();
   return tracks.filter(t=>
     (decade==='all'||t.decade===decade) &&
     (genre==='all'||t.genre===genre) &&
     (mood==='all'||t.mood===mood) &&
     (country==='all'||t.country===country) &&
+    (city==='all'||t.city===city) &&
     (!needle||[t.artist,t.title,t.genre,t.mood,t.country,t.city,t.year].filter(Boolean).join(' ').toLocaleLowerCase().includes(needle))
   );
 }
