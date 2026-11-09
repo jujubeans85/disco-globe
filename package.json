@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --check app.js && node --check catalogue.js && node --check discovery.js && node --check legacy.js",
-    "test": "node --test tests/*.test.mjs"
+    "check": "node --check hub.js && node --check sw.js && node --check verified.js && node --check app.js && node --check catalogue.js && node --check discovery.js && node --check legacy.js",
+    "test": "node --test tests/*.test.mjs",
+    "build:sites": "sh scripts/build-sites.sh"
   }
 }

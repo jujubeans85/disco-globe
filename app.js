@@ -1,3 +1,4 @@
+import { verifiedVideos } from './verified.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CURATED, DECADE_IDS, RECENT_DECADES, filterTracks, hasMappedLocation } from './catalogue.js';
@@ -259,9 +260,9 @@ function render({preserveScroll=false}={}){
       track.city?track.city+', '+track.country:null,track.source==='musicbrainz'?'MusicBrainz':null].filter(Boolean).join(' · ');
     details.append(title,meta);
     const button=document.createElement('button');button.type='button';
-    button.className='track-action'+(track.youtubeId?' direct':'');
-    button.textContent=track.youtubeId?'Play':'Find';
-    button.setAttribute('aria-label', (track.youtubeId?'Play ':'Find links for ')+track.artist+' '+track.title);
+    button.className='track-action'+(verifiedVideos.has(track.youtubeId)?' direct':'');
+    button.textContent=verifiedVideos.has(track.youtubeId)?'Play':'Find';
+    button.setAttribute('aria-label', (verifiedVideos.has(track.youtubeId)?'Play ':'Find links for ')+track.artist+' '+track.title);
     button.addEventListener('click',()=>openPlayer(track));
     row.append(details,button);fragment.appendChild(row);
   }
@@ -320,6 +321,7 @@ function closePlayer(){
   $('player-iframe').src='';$('player-iframe').hidden=true;
 }
 function openPlayer(track){
+  if (!verifiedVideos.has(track.youtubeId)) track = {...track, youtubeId:null};
   $('player-title').textContent=track.title;
   $('player-meta').textContent=[track.artist,track.year,track.genre,track.mood,
     track.city?track.city+', '+track.country:null].filter(Boolean).join(' · ');

@@ -66,9 +66,9 @@ test('the canonical GitHub Pages address is used everywhere, including iOS insta
  assert.ok(html.includes('<link rel="canonical" href="'+target+'">'));
  assert.ok(html.includes('<meta property="og:url" content="'+target+'">'));
  assert.equal((html.match(/rel="canonical"/g)||[]).length,1);
- assert.equal(manifest.id,'/disco-globe/');
- assert.equal(manifest.start_url,'/disco-globe/');
- assert.equal(manifest.scope,'/disco-globe/');
+ assert.equal(new URL(manifest.id,target).pathname,'/disco-globe/');
+ assert.equal(new URL(manifest.start_url,target).pathname,'/disco-globe/');
+ assert.equal(new URL(manifest.scope,target).pathname,'/disco-globe/');
  assert.ok(manifest.icons.length>=1);
  for(const icon of manifest.icons){
   assert.ok(!icon.src.startsWith('/'), 'manifest icon should remain in GitHub Pages project scope');

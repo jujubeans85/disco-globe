@@ -2,7 +2,7 @@
   "name": "Disco Juice — Music Around the World",
   "short_name": "Disco Juice",
   "description": "Explore the globe by decade, geography, genre and mood. One canonical Disco Juice app on GitHub Pages.",
-  "start_url": "/disco-globe/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#07070a",
   "theme_color": "#07070a",
@@ -14,6 +14,6 @@
       "purpose": "any"
     }
   ],
-  "id": "/disco-globe/",
-  "scope": "/disco-globe/"
+  "id": "./",
+  "scope": "./"
 }

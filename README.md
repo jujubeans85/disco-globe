@@ -2,11 +2,11 @@
 
 **Canonical / official app:** https://jujubeans85.github.io/disco-globe/
 
-**Single source of truth:** `jujubeans85/disco-globe` → `main` → GitHub Pages. Do not publish separate feature copies on Netlify or create alternate app front ends.
+**Single source of truth:** `jujubeans85/disco-globe` → `main` → GitHub Pages. The private Sites deployment mirrors the same source. Netlify redirects to GitHub Pages.
 
 To install on iPhone: open the official URL in **Safari** → **Share** → **Add to Home Screen**. If an older shortcut opens `disco-juice.netlify.app` or `global-juice.netlify.app`, test the new shortcut and then remove the old one. Existing standalone icons cannot be remotely re-pointed to another website origin.
 
-The web manifest uses `/disco-globe/` for `id`, `start_url` and `scope`, avoiding the old `start_url: /` issue that could send GitHub Pages installations to the account homepage.
+The web manifest resolves `id`, `start_url` and `scope` against its own directory, avoiding the old `start_url: /` issue that could send GitHub Pages installations to the account homepage.
 
 ## Fixes
 
@@ -20,7 +20,7 @@ The web manifest uses `/disco-globe/` for `id`, `start_url` and `scope`, avoidin
 
 ## Tenfold discovery expansion
 
-For each of the latest eight decades, a MusicBrainz query can add up to **400 different records** tied to that decade's first-release date. Results are cached in this browser for 30 days and loaded when a decade is selected.
+For each of the latest eight decades, a MusicBrainz query can add up to **400 different records** tied to that decade's first-release date. Results are cached in this browser for 30 days and loaded when you choose a decade and tap Find more.
 
 **Important:** These are music catalogue links, not 400 hand-verified playable video links. Each record has a direct MusicBrainz metadata URL and labelled search links for YouTube, Spotify, SoundCloud and Apple Music. Records missing credible genre, mood or location tags are not automatically assigned invented values. The 118 curated seeds remain available when online discovery fails.
 
@@ -53,3 +53,13 @@ The two older Netlify addresses (`disco-juice.netlify.app` and `global-juice.net
 The root `netlify.toml` now contains a permanent `301` redirect to the official GitHub Pages address, preserving deep URL paths. **This rule only becomes active when a Netlify site is actually redeployed with the new configuration**. The connected Netlify actions available in this environment are read-only for deployment; the manual mirror re-publish must be completed separately in Netlify. Do not claim those two redirects are live until verified.
 
 Canonical checks run through the same test workflow on each pull request and on `main`, including a mobile viewport smoke test.
+
+## Listening hub
+
+The homepage uses the existing catalogue and discovery modules. The original interactive globe is available at `globe.html`. `verified.js` records the YouTube IDs whose available video metadata matched the recordings when checked. Unconfirmed or mismatched references fall back to platform search. MusicBrainz links go under recording details.
+
+The shortlist saves one entry per normalised artist and title in browser storage. An initial online visit caches the hub for offline use. Playback needs internet, and the shortlist is scoped to the device and website origin.
+
+## Publishing both copies
+
+Make changes in this repository, run `npm run check && npm test`, then publish the same source on GitHub Pages and Sites. Use `npm run build:sites` to stage the static assets for the private Sites version. Publish both copies from the same revision. GitHub Pages is the address to share.

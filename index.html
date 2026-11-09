@@ -1,78 +1,51 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#07070a">
-  <link rel="canonical" href="https://jujubeans85.github.io/disco-globe/">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Disco Juice">
-  <meta property="og:title" content="Disco Juice — Music Around the World">
-  <meta property="og:description" content="Explore music by decade, geography, genre and mood on an interactive globe.">
-  <meta property="og:url" content="https://jujubeans85.github.io/disco-globe/">
-  <meta name="twitter:card" content="summary">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Disco Juice">
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" type="image/svg+xml" href="./icon.svg">
-  <link rel="stylesheet" href="./styles.css">
-  <title>Disco Juice — Music Around the World</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#120e19">
+<link rel="canonical" href="https://jujubeans85.github.io/disco-globe/">
+<meta property="og:url" content="https://jujubeans85.github.io/disco-globe/">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg">
+<link rel="stylesheet" href="./hub.css">
+<title>Disco Juice — Discover & Listen</title>
 </head>
 <body>
-  <div id="canvas-container" aria-label="Interactive rotating musical globe"></div>
-  <main class="ui">
-    <header class="masthead">
-      <div class="brand">DISCO <span>JUICE</span></div>
-      <div class="header-actions">
-        <button class="chip" id="charts-toggle" type="button" aria-expanded="false" aria-controls="chart-panel">Live charts</button>
-      </div>
-    </header>
-
-    <section class="filters" aria-label="Music discovery filters">
-      <div class="filter"><label for="decade-select">Decade</label><select id="decade-select"></select></div>
-      <div class="filter"><label for="genre-select">Genre</label><select id="genre-select"></select></div>
-      <div class="filter"><label for="mood-select">Mood</label><select id="mood-select"></select></div>
-      <div class="filter"><label for="country-select">Country / area</label><select id="country-select"></select></div>
-      <div class="filter wide"><label for="search-input">Find artist, track, scene</label><input id="search-input" type="search" placeholder="Search music and places…" autocomplete="off"></div>
-      <div class="filter-actions">
-        <button type="button" id="reset-filters" title="Clear all filters except decade">Reset</button>
-        <button type="button" id="rotate-toggle" class="on" aria-pressed="true">Spin on</button>
-        <button type="button" id="geo-toggle" class="on" aria-pressed="true">Borders on</button>
-      </div>
-    </section>
-
-    <aside id="chart-panel" class="chart-panel" hidden aria-label="Current US iTunes chart, independent of decade filter">
-      <div class="chart-head"><span>US chart <small>· live, any decade</small></span><button type="button" class="mini-action" id="chart-close" aria-label="Close live chart">×</button></div>
-      <div id="chart-list"><div class="status-line" style="padding:12px">Open to load live chart</div></div>
-    </aside>
-
-    <section class="track-panel" aria-label="Matching music tracks">
-      <div class="panel-head">
-        <div class="panel-headline"><span class="panel-title">Explore music</span><span id="panel-count" class="panel-count">Loading…</span></div>
-        <div class="panel-summary"><span id="panel-summary">Browse by decade, genre, mood and place</span><span id="scene-label"></span></div>
-        <div id="discovery-status" class="status-line" aria-live="polite"></div>
-      </div>
-      <div id="track-list" class="track-list" role="list"></div>
-      <div class="panel-foot"><span id="panel-page">Music-scene pins are approximate</span><button id="show-more" type="button">Show more</button></div>
-    </section>
-    <div class="info-note">Place pins show associated cities/scenes, not verified recording studios. Some catalogue records have no mapped location.</div>
-  </main>
-
-  <div id="player-modal" role="dialog" aria-modal="true" aria-labelledby="player-title">
-    <div class="player-card">
-      <button id="close-player" class="close-btn" aria-label="Close player" type="button">×</button>
-      <h2 id="player-title" class="player-title">Track</h2>
-      <div id="player-meta" class="player-meta"></div>
-      <iframe id="player-iframe" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="YouTube music player" hidden></iframe>
-      <div id="player-note" class="modal-note"></div>
-      <nav id="player-links" class="links" aria-label="Music platform links"></nav>
+<header>
+  <a class="brand" href="./">DISCO <em>JUICE</em></a>
+  <nav aria-label="Main navigation">
+    <button id="browse" aria-pressed="true">Discover</button>
+    <button id="shortlist" aria-pressed="false">Shortlist <span id="saved-count">0</span></button>
+    <a href="./globe.html">Globe ↗</a>
+  </nav>
+</header>
+<main>
+  <section class="intro">
+    <p class="eyebrow">THE LISTENING ATLAS / 1950s–2020s</p>
+    <h1 id="heading" tabindex="-1">Find your next track.</h1>
+    <p id="description">Explore eight decades of music by sound, mood and scene.</p>
+  </section>
+  <section id="facets" aria-label="Discovery filters">
+    <label class="wide">Artist, track or scene<input id="query" type="search" placeholder="Search the catalogue"></label>
+    <div class="filters">
+      <label>Decade<select id="decade"></select></label>
+      <label>Genre<select id="genre"></select></label>
+      <label>Mood<select id="mood"></select></label>
+      <label>Country / area<select id="country"></select></label>
+      <label>City / scene<select id="city"></select></label>
+      <label>Listening source<select id="listening"></select></label>
     </div>
-  </div>
-
-  <script type="importmap">
-    {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
-  </script>
-  <script type="module" src="./app.js"></script>
+    <div class="toolbar"><button id="expand">Find more online</button><button id="reset">Reset filters</button></div>
+    <p id="discovery" role="status"></p>
+    <p class="note">Places describe associated music scenes. Missing metadata stays unknown.</p>
+  </section>
+  <p id="notice" role="status"></p>
+  <div class="results-head"><h2 id="results-title">Recordings</h2><span id="count" aria-live="polite"></span></div>
+  <ul id="results"></ul>
+  <button id="more" hidden>Show more</button>
+  <footer><a href="https://jujubeans85.github.io/disco-globe/">Canonical Disco Juice address</a></footer>
+</main>
+<script type="module" src="./hub.js"></script>
 </body>
 </html>
