@@ -4,6 +4,7 @@
 export const DISCOVERY_TARGET = 400;
 const VERSION='dj-musicbrainz-2026-11-v2:';
 const TTL=30*24*60*60*1000;
+let lastRequestAt=0; // also pace a new decade after aborting an old request
 function cacheKey(decade){return VERSION+decade}
 export function cachedDiscovery(decade){
   try {
@@ -41,9 +42,11 @@ export async function discoverDecade(decade,{signal,onProgress}={}){
   if(existing){onProgress?.(existing.length,true);return existing}
   const items=[],seen=new Set();
   for(let offset=0;offset<700&&items.length<DISCOVERY_TARGET;offset+=100){
-    if(offset)await nap(1200,signal);
+    const pause=Math.max(0,1250-(Date.now()-lastRequestAt));
+    if(pause)await nap(pause,signal);
     const query='firstreleasedate:['+start+'-01-01 TO '+(start+9)+'-12-31] AND dur:[60000 TO 900000]';
     const url='https://musicbrainz.org/ws/2/recording/?fmt=json&limit=100&offset='+offset+'&query='+encodeURIComponent(query);
+    lastRequestAt=Date.now();
     const response=await fetch(url,{signal,headers:{'Accept':'application/json'}});
     if(!response.ok)throw new Error('MusicBrainz temporarily unavailable (HTTP '+response.status+')');
     const payload=await response.json();
