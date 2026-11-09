@@ -25,9 +25,22 @@ try{
  const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:3,isMobile:true,hasTouch:true});
  const errors=[];
  page.on('pageerror',error=>errors.push(error.message));
- await page.route('https://musicbrainz.org/**',r=>r.abort()); // keep external catalogue from delaying smoke
+ // Deterministic 400-record MusicBrainz fixture. No public API dependency in CI.
+ await page.route('https://musicbrainz.org/**',async route=>{
+  const url=new URL(route.request().url());
+  const offset=Number(url.searchParams.get('offset')||'0');
+  const tracks=Array.from({length:100},(_,i)=>{
+   const num=offset+i;
+   return {id:'b73f2c40-a122-4d20-8cee-'+String(num).padStart(12,'0'),
+    title:'Synthetic Test Recording '+num,'first-release-date':'1977-01-01',
+    'artist-credit':[{name:'Fixture Artist '+num}]};
+  });
+  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({recordings:tracks,'recording-count':12000})});
+ });
  await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>document.querySelector('#decade-select')?.options.length===24,null,{timeout:30000});
+ await page.waitForFunction(()=>Number(document.querySelector('#panel-count')?.textContent?.split(' ')[0])>=400,null,{timeout:30000});
+ assert.match(await page.locator('#discovery-status').textContent(),/400 dated records found/);
  for(const [width,height] of [[390,844],[320,568],[430,932]]){
   await page.setViewportSize({width,height});
   const boxes=await page.evaluate(()=>{
