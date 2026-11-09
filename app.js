@@ -36,10 +36,11 @@ const filters={decade:'1970s',genre:'all',mood:'all',country:'all',city:'all',qu
 let globe=null;
 let outlines=null;
 let outlinesLoading=null;
+let showGeo=true;
 let globeStyle=null;
 let markerMeshes=[];
 let visible=[];
-let visiblePageSize=20;
+let visiblePageSize=40;
 let lastLocation=null;
 let discoveryController=null;
 const discoveredByDecade=new Map();
@@ -75,25 +76,27 @@ function setupFilters(){
       filters[field]=$(id).value;
       if(field==='country'){filters.city='all';lastLocation=null;focusOnCountry(filters.country)}
       if(field==='decade'){filters.city='all';lastLocation=null;refreshGlobeColor();if(oldDecade!==filters.decade)requestDiscovery()}
-      visiblePageSize=20;saveChoices();render();
+      visiblePageSize=40;saveChoices();render();
     });
   }
   $('search-input').value=filters.query;
-  $('search-input').addEventListener('input',()=>{filters.query=$('search-input').value;visiblePageSize=20;saveChoices();render()});
+  $('search-input').addEventListener('input',()=>{filters.query=$('search-input').value;visiblePageSize=40;saveChoices();render()});
   $('reset-filters').addEventListener('click',()=>{
     for(const f of ['genre','mood','country','city','query'])filters[f]='all';
     filters.query='';
     lastLocation=null;
     for(const field of ['genre','mood','country'])$(field+'-select').value='all';
     $('search-input').value='';
-    visiblePageSize=20;saveChoices();render();
+    visiblePageSize=40;saveChoices();render();
   });
   $('rotate-toggle').addEventListener('click',()=>{
     controls.autoRotate=!controls.autoRotate;updateToggles();
   });
   $('geo-toggle').addEventListener('click',()=>{
-    if(!outlines)loadGeo();
-    else{outlines.visible=!outlines.visible;updateToggles()}
+    showGeo=!showGeo;
+    if(outlines)outlines.visible=showGeo;
+    else if(showGeo)loadGeo();
+    updateToggles()
   });
   updateToggles();
 }
@@ -101,7 +104,7 @@ function updateToggles(){
   const spin=$('rotate-toggle'),geo=$('geo-toggle');
   spin.textContent=controls.autoRotate?'Spin on':'Spin off';
   spin.classList.toggle('on',controls.autoRotate);spin.setAttribute('aria-pressed',String(controls.autoRotate));
-  const showing=outlines?outlines.visible:true;
+  const showing=showGeo;
   geo.textContent=showing?'Borders on':'Borders off';
   geo.classList.toggle('on',showing);geo.setAttribute('aria-pressed',String(showing));
 }
@@ -198,7 +201,7 @@ async function loadGeo(){
         const points=[];for(let lat=-88;lat<=88;lat+=3)points.push(latLonToVec3(lat,lon,1.006));
         makeLine(points,gridMaterial,group);
       }
-      outlines=group;scene.add(group);updateToggles();
+      outlines=group;outlines.visible=showGeo;scene.add(group);updateToggles();
       return group;
     }catch(err){
       $('discovery-status').textContent='Map outline unavailable; track list and scene data still work.';
@@ -225,7 +228,7 @@ function getAll(){
   return tracks;
 }
 function showStatus(s){$('discovery-status').textContent=s}
-function render(){
+function render({preserveScroll=false}={}){
   const candidates=getAll();
   visible=filterTracks(candidates,filters);
   visible.sort((a,b)=>{
@@ -239,6 +242,7 @@ function render(){
   $('panel-summary').textContent=curated+' seed · '+broader+' library records · '+mapped+' mapped scenes. ';
   $('scene-label').textContent=lastLocation?'Viewing '+lastLocation.city+', '+lastLocation.country+'.':'';
   const list=$('track-list');
+  const oldScroll=preserveScroll?list.scrollTop:0;
   const fragment=document.createDocumentFragment();
   if(!visible.length){
     const empty=document.createElement('div');
@@ -262,8 +266,9 @@ function render(){
     row.append(details,button);fragment.appendChild(row);
   }
   list.replaceChildren(fragment);
+  list.scrollTop=oldScroll;
   $('show-more').disabled=visiblePageSize>=visible.length;
-  $('show-more').textContent=visiblePageSize>=visible.length?'All shown':'Show '+Math.min(20,visible.length-visiblePageSize)+' more';
+  $('show-more').textContent=visiblePageSize>=visible.length?'All shown':'Show '+Math.min(100,visible.length-visiblePageSize)+' more';
   $('panel-page').textContent=visible.length?'Showing '+Math.min(visiblePageSize,visible.length)+' of '+visible.length:'No matches';
 }
 function selectPlace(place){
@@ -277,7 +282,7 @@ function selectPlace(place){
   }
   filters.genre='all';filters.mood='all';filters.query='';
   $('genre-select').value='all';$('mood-select').value='all';$('search-input').value='';
-  visiblePageSize=20;saveChoices();render();
+  visiblePageSize=40;saveChoices();render();
   focusPoint(place.lat,place.lon);
 }
 async function requestDiscovery(){
@@ -343,7 +348,7 @@ $('close-player').addEventListener('click',closePlayer);
 modal.addEventListener('click',event=>{if(event.target===modal)closePlayer()});
 document.addEventListener('keydown',event=>{if(event.key==='Escape')closePlayer()});
 $('show-more').addEventListener('click',()=>{
-  visiblePageSize+=20;render();
+  visiblePageSize+=100;render({preserveScroll:true});
 });
 const raycaster=new THREE.Raycaster();
 const pointerStart=new Map();
