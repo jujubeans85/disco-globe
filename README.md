@@ -1,31 +1,43 @@
-# Disco Juice — Decade Globes (1800s–2020s)
+# Disco Juice — globe-based music discovery
 
-One distinct disco globe per decade.
+Live main branch: https://jujubeans85.github.io/disco-globe/
 
-## Live
-**GitHub Pages:** https://jujubeans85.github.io/disco-globe/
+## Fixes
 
-(Netlify mirrors available while fully populated: https://disco-juice.netlify.app/ and https://global-juice.netlify.app/)
+- Replaced the overflowing iOS interface with viewport-bound panels, safe-area spacing, an accessible player, and a scrollable track drawer. Browser zoom is not disabled.
+- The original index repeated the same 40 tracks under every decade. Those 40 distinct YouTube references are now deduplicated and date-filtered.
+- Added 118 recent-decade seed tracks across the 1950s–2020s, with associated city/scene, genre and mood. These are *scene associations*, not verified recording studio addresses.
+- Made decade, genre, mood, country/area, city/scene, and free-text matching independent and combinable.
+- Markers are only plotted for entries with mapped scene coordinates (49 city locations). Unknown locations are never assigned random positions. Coincident tracks cluster by city.
+- Globe boundaries include all World Atlas 110m country arcs, plus subtle latitude/longitude graticules.
+- The current US iTunes chart is independent of the selected era, and stays hidden until explicitly opened.
 
-## Features
-- 23 decades (1800s through 2020s)
-- Unique visual style per decade (color, metalness, roughness, emissive, lighting)
-- Faint geographical continent/country outlines (loaded from Natural Earth 110m TopoJSON)
-- Full-length playable tracks via in-app YouTube embed
-- Links to Spotify, SoundCloud, and Discogs for every marker
-- Tap any marker to open the player modal
-- Home Screen / PWA ready (SVG + apple-touch-icon + manifest)
+## Tenfold discovery expansion
 
-## How to use
-Open the live Pages URL above, or `index.html` locally.
+For each of the latest eight decades, a MusicBrainz query can add up to **400 different records** tied to that decade's first-release date. Results are cached in this browser for 30 days and loaded when a decade is selected.
 
-Select decade from the top dropdown. Drag to rotate, pinch/scroll to zoom, tap white markers to play.
+**Important:** These are music catalogue links, not 400 hand-verified playable video links. Each record has a direct MusicBrainz metadata URL and labelled search links for YouTube, Spotify, SoundCloud and Apple Music. Records missing credible genre, mood or location tags are not automatically assigned invented values. The 118 curated seeds remain available when online discovery fails.
 
-## Data notes
-Tracks are strong public-domain or widely available full-length representations for each era (classical → jazz → rock → electronic → contemporary). Expand the `TRACKS` object in the HTML to add more points per decade.
+MusicBrainz is rate limited to one request per second. Expansion depends on its service and may return fewer than 400 clean matches. Video embeds depend on YouTube availability and region/embedding rules.
 
-Geo outlines are approximate low-resolution country/continent lines projected onto the sphere surface.
+## Source of truth
+
+- catalogue.js — dated tracks, city coordinates, facet filter logic
+- legacy.js — the original 40 unique YouTube reference IDs
+- discovery.js — MusicBrainz expansion, local cache, platform-search links
+- app.js — Three.js rendering, country outlines, city markers, player and UI
+- styles.css and index.html — responsive iPhone/desktop shell
+
+Music metadata may be cached offline, but YouTube and music-service playback requires internet. Original pre-1920 entries use historical work dates, not dates of modern recordings.
+
+## Validation
+
+npm run check
+
+npm test
+
+GitHub Actions also runs a Chromium mobile viewport smoke test at widths 320, 390 and 430 CSS pixels. A Chrome viewport test does not replace a test on a physical iPhone/Safari.
 
 ## Deployment
-- GitHub Pages: Settings → Pages → Deploy from branch → `main` / root
-- Netlify continuous deploy can be linked later once fully populated and tested
+
+GitHub Pages uses main at the repository root. The feature branch is not the live Home Screen deployment until merged. Netlify deployment previews depend on the site's connection.
